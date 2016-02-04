@@ -31,7 +31,7 @@ with \(\tau\equiv t-t'\), \(S_{\textrm{st}}(t,\tau)\equiv S(p_{\textrm{st}},t,t-
 \[p_{\textrm{st}}(t,\tau)=\frac{x(t)-x(t-\tau)}{\tau} = \frac{1}{\tau}\int\limits_{t-\tau}^t dt' A(t').\]
 =#
 
-function calc_i(i, offset, δt, Av, Ev, Ip, d)
+function calc_i(i, offset, jmin, δt, Av, Ev, Ip, d)
     τ = reverse(1:i+offset)*δt
     nτ = length(τ)
 
@@ -40,7 +40,7 @@ function calc_i(i, offset, δt, Av, Ev, Ip, d)
     pτ = 0
     dx = 0im
 
-    for j = nτ:-1:1
+    for j = nτ:-1:jmin
         ζ = (π/(1e-10 + im*(τ[j]-δt)/2))^(3/2)
 
         AtP = Av[j]
@@ -69,10 +69,15 @@ function propagate(A,E,Ip,d,tlims,T,ndt)
     δt = T/ndt
 
     t = (tlims[1]*ndt+1:tlims[2]*ndt)*δt
-    offset = (tlims[1]-tlims[3])*ndt-1
+    if tlims[3]>=0
+        offset = (tlims[1]-tlims[3])*ndt-1
+        jmin = 1
+    else
+        offset = tlims[1]*ndt - 1
+        jmin = round(Int, offset + tlims[3]*ndt)
+    end
     nt = length(t)
     tlims = collect(tlims)*T
-
 
     t2 = SharedArray(Float64, nt+offset)
     Av = SharedArray(Float64, nt+offset)
@@ -86,7 +91,7 @@ function propagate(A,E,Ip,d,tlims,T,ndt)
 
     x = sdata(SharedArray(Float64, nt,
                           init = S -> (S[Base.localindexes(S)] =
-                                      map(i -> calc_i(i, offset, δt, Av, Ev, Ip, d),
+                                      map(i -> calc_i(i, offset, jmin + i, δt, Av, Ev, Ip, d),
                                           Base.localindexes(S)))))
     x *= 2δt
 
