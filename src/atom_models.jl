@@ -13,6 +13,7 @@ Hydrogenlike atom:
 d_hyd(p,α) = im*(2^(7/2)*α^(5/4)/π)*p./((p.^2+α).^3)
 hyd_α(Ip) = 2Ip
 
-hydrogen = 0.5, p -> d_hyd(p, hyd_α(0.5))
+hydrogen_like(Ip) = Ip, p -> d_hyd(p, hyd_α(Ip))
+hydrogen = hydrogen_like(0.5)
 
-export d_gaussian, d_hyd, hyd_α, hydrogen
+export d_gaussian, d_hyd, hyd_α, hydrogen_like, hydrogen
