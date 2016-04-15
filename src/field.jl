@@ -18,11 +18,11 @@ trapezoidal(flat,ramp) = t ->
 ((t .> ramp) .== (t .<= ramp+flat)) +
 ((t .> ramp+flat) .== (t .<= 2ramp+flat)) .* (2ramp + flat - t)/ramp
 
-function field(λ, I,
+function field(λ, I;
                carrier = (ω,t) -> cos(ω*t),
                env = t -> 1)
     ω,T,A₀ = field_params_au(λ, I)
-    A = t -> A₀*env(t/T).*cos(ω*t)
+    A = t -> A₀*env(t/T).*carrier(ω,t)
     E = t -> -map(A', t)
     ω,T,A,E
 end
