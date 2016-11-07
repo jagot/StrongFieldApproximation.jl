@@ -65,7 +65,7 @@ end
 # interval [tlims[1],tlims[2]] with ndt steps per cycle. t' will
 # assume values in the interval [tlims[3],t], ∀ t, tlims[3] ⩾ 0, else
 # [t - tlims[3],t].
-function propagate(A,E,Ip,d,tlims,T,ndt)
+function propagate(A::Function,E::Function,Ip::Real,d::Function,tlims,T::Real,ndt::Integer)
     δt = T/ndt
 
     t = (tlims[1]*ndt+1:tlims[2]*ndt)*δt
@@ -96,6 +96,32 @@ function propagate(A,E,Ip,d,tlims,T,ndt)
     x *= 2δt
 
     x,t
+end
+
+function propagate(t::AbstractVector,
+                   A::Vector,E::Vector,
+                   Ip::Real,d::Function,
+                   T::Real,ndt::Integer,
+                   tmin::Real = -0.65)
+    nt = length(t)
+
+    Av = SharedArray(Float64, nt)
+    Ev = SharedArray(Float64, nt)
+    @parallel for i = 1:nt
+        Av[i] = A[i]
+        Ev[i] = E[i]
+    end
+
+    δt = T/ndt
+    jmin = round(Int, tmin*ndt)
+
+    x = sdata(SharedArray(Float64, nt,
+                           init = S -> (S[Base.localindexes(S)] =
+                                       map(i -> SFA.calc_i(i, 0, max(jmin+i, 1), δt, Av, Ev, Ip, d),
+                                           Base.localindexes(S)))))
+
+    x *= 2δt
+    x
 end
 
 export propagate
