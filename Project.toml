@@ -1,0 +1,12 @@
+name = "SFA"
+uuid = "8040a08e-eda0-452b-8711-9fe2c017c9f1"
+authors = ["Stefanos Carlström <stefanos.carlstrom@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+ElectricFields = "2f84ce32-9bb1-11e8-0d9f-3dce90a4beca"
+FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
+LiterateOrg = "a7ef59f1-ab8a-5612-8cbe-0c3d3c126043"
+Sellmeier = "3556f6ba-618b-11e8-3a96-7fd9559c354a"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+UnitfulAtomic = "a7773ee8-282e-5fa2-be4e-bd808c38a91a"

@@ -1,5 +1,4 @@
 using PyCall
-pygui(:qt)
 using PyPlot
 
 using SFA.trapz

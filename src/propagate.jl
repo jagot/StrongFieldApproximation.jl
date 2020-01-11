@@ -40,7 +40,7 @@ function calc_i(i, offset, jmin, δt, Av, Ev, Ip, d)
     pτ = 0
     dx = 0im
 
-    for j = nτ:-1:jmin
+    for j = nτ:-1:max(jmin,1)
         ζ = (π/(1e-10 + im*(τ[j]-δt)/2))^(3/2)
 
         AtP = Av[j]
@@ -54,74 +54,52 @@ function calc_i(i, offset, jmin, δt, Av, Ev, Ip, d)
         dion = d(pion)
         drec = d(prec)
 
-        S = trapzv(0.5(p - Av[j:i+offset-1]).^2 + Ip, δt) # Saddle-point action
+        S = trapzv(0.5(p .- Av[j:i+offset-1]).^2 .+ Ip, δt) # Saddle-point action
 
         dx += ζ*conj(drec)*exp(-im*S)*EtP*dion
     end
     -imag(dx)
 end
 
-# tlims set the limits of the integration: t will assume values in the
-# interval [tlims[1],tlims[2]] with ndt steps per cycle. t' will
-# assume values in the interval [tlims[3],t], ∀ t, tlims[3] ⩾ 0, else
-# [t - tlims[3],t].
-function propagate(A::Function,E::Function,Ip::Real,d::Function,tlims,T::Real,ndt::Integer)
+function propagate(t::Vector,
+                   A::Vector,E::Vector,
+                   Ip::Real,d::Function,
+                   T::Real,ndt::Integer,
+                   jmin::Function, offset::Int)
+    nt = length(t)
     δt = T/ndt
 
-    t = (tlims[1]*ndt+1:tlims[2]*ndt)*δt
-    if tlims[3]>=0
-        offset = (tlims[1]-tlims[3])*ndt-1
-        jmin = 1
-    else
-        offset = tlims[1]*ndt - 1
-        jmin = round(Int, offset + tlims[3]*ndt)
-    end
-    nt = length(t)
-    tlims = collect(tlims)*T
-
-    t2 = SharedArray(Float64, nt+offset)
-    Av = SharedArray(Float64, nt+offset)
-    Ev = SharedArray(Float64, nt+offset)
-    @parallel for i = 1:nt+offset
-        tt = (i+1)*δt
-        t2[i] = tt
-        Av[i] = A(tt)
-        Ev[i] = E(tt)
+    x = Vector{Float64}(undef, nt)
+    Threads.@threads for i = 1:nt
+        x[i] = calc_i(i, offset, jmin(i), δt, A, E, Ip, d)
     end
 
-    x = sdata(SharedArray(Float64, nt,
-                          init = S -> (S[Base.localindexes(S)] =
-                                      map(i -> calc_i(i, offset, jmin + i, δt, Av, Ev, Ip, d),
-                                          Base.localindexes(S)))))
     x *= 2δt
-
-    x,t
+    x, t
 end
 
-function propagate(t::AbstractVector,
+function propagate(t::Vector,
                    A::Vector,E::Vector,
                    Ip::Real,d::Function,
                    T::Real,ndt::Integer,
                    tmin::Real = -0.65)
-    nt = length(t)
-
-    Av = SharedArray(Float64, nt)
-    Ev = SharedArray(Float64, nt)
-    @parallel for i = 1:nt
-        Av[i] = A[i]
-        Ev[i] = E[i]
+    imin = round(Int, tmin*ndt)
+    jmin = if tmin < 0.0
+        i -> i + imin
+    else
+        i -> imin
     end
+    propagate(t, A, E, Ip, d,
+              T, ndt, jmin, 0)
+end
 
-    δt = T/ndt
-    jmin = round(Int, tmin*ndt)
-
-    x = sdata(SharedArray(Float64, nt,
-                           init = S -> (S[Base.localindexes(S)] =
-                                       map(i -> SFA.calc_i(i, 0, max(jmin+i, 1), δt, Av, Ev, Ip, d),
-                                           Base.localindexes(S)))))
-
-    x *= 2δt
-    x
+function propagate(F::ElectricFields.LinearField,
+                   Ip::Real,d::Function,
+                   ndt::Integer, args...;
+                   kwargs...)
+    tau,E,A = field(F, ndt; kwargs...)
+    propagate(tau, A, E, Ip, d,
+              atomic_units(period(F)), ndt, args...)
 end
 
 export propagate
