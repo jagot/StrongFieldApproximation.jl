@@ -1,4 +1,4 @@
-module SFA
+module StrongFieldApproximation
 
 using ElectricFields
 using Unitful

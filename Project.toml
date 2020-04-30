@@ -1,4 +1,4 @@
-name = "SFA"
+name = "StrongFieldApproximation"
 uuid = "8040a08e-eda0-452b-8711-9fe2c017c9f1"
 authors = ["Stefanos Carlström <stefanos.carlstrom@gmail.com>"]
 version = "0.1.0"

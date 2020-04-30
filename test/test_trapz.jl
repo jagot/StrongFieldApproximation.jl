@@ -1,7 +1,7 @@
 using PyCall
 using PyPlot
 
-using SFA.trapz
+using StrongFieldApproximation.trapz
 
 using Calculus
 

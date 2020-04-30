@@ -1,4 +1,4 @@
-using SFA
+using StrongFieldApproximation
 using Base.Test
 
 # write your own tests here

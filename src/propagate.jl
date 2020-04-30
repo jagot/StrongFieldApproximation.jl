@@ -1,4 +1,4 @@
-using SFA.trapz
+using StrongFieldApproximation.trapz
 
 #=
 \[x(t)=
