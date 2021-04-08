@@ -10,5 +10,6 @@ include("units.jl")
 include("field.jl")
 include("trapz.jl")
 include("propagate.jl")
+include("ionization_rates.jl")
 
 end # module
