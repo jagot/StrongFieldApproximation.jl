@@ -5,3 +5,5 @@
 .#*
 .juliahistory
 ltxpng/
+Manifest.toml
+docs/build/

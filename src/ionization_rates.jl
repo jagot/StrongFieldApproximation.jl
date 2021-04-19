@@ -55,8 +55,11 @@ effective_n(Iₚ, Z) =
     β(γ)
 
 ```math
+\begin{equation}
+\tag{PPT56ff}
 \beta(\gamma) =
 \frac{2\gamma}{\sqrt{1+\gamma^2}}
+\end{equation}
 ```
 
 Defined just below Eq. (PPT56).
@@ -135,7 +138,7 @@ field of intensity ``I``.
 w_m(x) =
 \frac{x^{2\abs{m}+1}}{2}
 \int_0^1\diff{t}
-\frac{\exp{-x^2t}t^{\abs{m}}}{\sqrt{1-t}}
+\frac{\exp(-x^2t)t^{\abs{m}}}{\sqrt{1-t}}
 \end{equation}
 ```
 """

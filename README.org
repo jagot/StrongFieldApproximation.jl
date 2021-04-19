@@ -1,6 +1,11 @@
-#+TITLE: StrongFieldApproximation
+#+TITLE: StrongFieldApproximation.jl
 #+AUTHOR: Stefanos Carlström
 #+EMAIL: stefanos.carlstrom@gmail.com
+
+[[https://jagot.github.io/StrongFieldApproximation.jl/stable][https://img.shields.io/badge/docs-stable-blue.svg]]
+[[https://jagot.github.io/StrongFieldApproximation.jl/dev][https://img.shields.io/badge/docs-dev-blue.svg]]
+[[https://github.com/jagot/StrongFieldApproximation.jl/actions][https://github.com/jagot/StrongFieldApproximation.jl/workflows/CI/badge.svg]]
+[[https://codecov.io/gh/jagot/StrongFieldApproximation.jl][https://codecov.io/gh/jagot/StrongFieldApproximation.jl/branch/master/graph/badge.svg]]
 
 #+PROPERTY: header-args:jupyter-julia :session *julia-README* :async yes
 
