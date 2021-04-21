@@ -22,9 +22,6 @@ include("volkov.jl")
 include("channels.jl")
 include("dyson_expansions.jl")
 
-include("trapz.jl")
-include("propagate.jl")
-
 include("ionization_rates.jl")
 
 end # module
