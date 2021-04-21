@@ -20,4 +20,7 @@ function momentum_grid(kmin, kmax, nk, nθ; spacing=:momentum)
     k,kmag,x*π
 end
 
+momentum_grid(Emin::Unitful.Energy, Emax::Unitful.Energy, args...; kwargs...) =
+    momentum_grid(√(2austrip(Emin)), √(2austrip(Emax)), args...; kwargs...)
+
 export momentum_grid
