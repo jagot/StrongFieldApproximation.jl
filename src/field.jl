@@ -1,15 +1,15 @@
-mutable struct AccumulatedIntegral{Tt,Ft,Func}
+mutable struct AccumulatedIntegral{Tt,Ft,Func,Wt}
     t::Tt
     ∫f::Ft
     f::Func
     c::Vector{Tt} # Quadrature roots
-    w::Vector{Ft} # Quadrature weights
+    w::Vector{Wt} # Quadrature weights
 
     function AccumulatedIntegral(f::Func, ::Type{Ft}, ::Type{Tt}=Ft;
                                  k = 3,
                                  t::Tt=zero(Tt), init=zero(Ft)) where {Ft,Func,Tt}
         c,w = gausslegendre(k)
-        new{Tt,Ft,Func}(t, init, f, c, w)
+        new{Tt,Ft,Func,eltype(w)}(t, init, f, c, w)
     end
 end
 
