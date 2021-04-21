@@ -1,6 +1,8 @@
 using StrongFieldApproximation
 using Documenter
 
+isdefined(Main, :NOPLOTS) && NOPLOTS || include("plots.jl")
+
 makedocs(;
     modules=[StrongFieldApproximation],
     authors="Stefanos Carlström <stefanos.carlstrom@gmail.com>",
@@ -38,13 +40,17 @@ makedocs(;
                     :twobodydx => ["[#1||#2]", 2],
                     :direct => ["{\\operator{J}_{#1}}", 1],
                     :exchange => ["{\\operator{K}_{#1}}", 1],
-                    :diff => ["\\mathrm{d}#1\\,", 1]
+                    :diff => ["\\mathrm{d}#1\\,", 1],
+                    :saddle => ["#1^{(\\textrm{st})}", 1],
+                    :ce => "\\mathrm{e}"
                 )
             )
         ))
     ),
     pages=[
         "Home" => "index.md",
+        "Strong-field ionization" => "strong_field_ionization.md",
+        "Reference" => "reference.md",
     ],
     doctest = false
 )

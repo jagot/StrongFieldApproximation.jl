@@ -18,6 +18,13 @@ source_term(d::DipoleSourceTerm, t, p) =
 
 # * Ionizations channels
 
+"""
+    IonizationChannel(E, st)
+
+Represents an ionization channel with energy `E` above the neutral
+(which is taken to have energy `0 Ha`).
+
+"""
 struct IonizationChannel{T,SourceTerm<:AbstractSourceTerm}
     E::T
     st::SourceTerm

@@ -6,8 +6,24 @@ using HCubature
 
 Γ(x) = SpecialFunctions.gamma(x)
 
+@doc raw"""
+```math
+\begin{equation}
+\tag{ADK19}
+\abs{C_{n^*\ell^*}}^2 =
+\frac{2^{2n^*}}{n^*\Gamma(n^*+\ell^*+1)\Gamma(n^*-\ell^*)}
+\end{equation}
+```
+"""
 C2(n, ℓ) = 2.0^(2n)/(n*Γ(n+ℓ+1)*Γ(n-ℓ))
 
+@doc raw"""
+    Etilde(E0, Iₚ)
+```math
+\tilde{E} = \frac{E_0}{2(2I_p)^{3/2}} \equiv
+\frac{\sqrt{I}}{2(2I_p)^{3/2}}.
+```
+"""
 Etilde(E0, Iₚ) = E0/(2(2Iₚ)^1.5)
 
 @doc raw"""
@@ -183,6 +199,34 @@ function A(m, Iₚ, I, ω; tol = √(eps()), maxterms=typemax(Int))
     (4/√(3π))/factorial(abs(m)) * γ^2/(1+γ^2) * S
 end
 
+@doc raw"""
+    PPT(Iₚ, I, ω, ℓ, m[, Z=1])
+
+Compute the strong-field photoionization rate from an initial state
+with ionization potential `Iₚ`, angular quantum numbers `ℓ` & `m`, and
+a binding potential of charge `Z`, when subjected to monochromatic
+light of intensity `I` and angular frequency `ω`, using the PPT
+formalism (slightly generalized to effective principal quantum numbers
+``n^*``):
+
+```math
+\begin{equation}
+\tag{PPT54,ADK1}
+w_{\ell m}(F, \omega) =
+I_p
+\abs{C_{n^*\ell^*}}^2
+\sqrt{\frac{3}{2\pi}}
+f(\ell, m)
+\tilde{E}^{-(2n^* - \abs{m} - 3/2)}
+(1+\gamma^2)^{-n^* + \abs{m}/2 + 3/4}
+A_m(\omega,\gamma)
+\exp\left[
+-\frac{g(\gamma)}{3\tilde{E}}
+\right],
+\end{equation}
+```
+where ``\gamma`` is the Keldysh parameter, and ``n^*`` the [`effective_n`](@ref).
+"""
 function PPT(Iₚ, I, ω, ℓ, m, Z=1)
     γ = keldysh(Iₚ, I, ω)
     n⭑ = effective_n(Iₚ, Z)

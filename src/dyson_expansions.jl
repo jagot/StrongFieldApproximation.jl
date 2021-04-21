@@ -1,4 +1,15 @@
 # * System
+
+"""
+    System
+
+Describes the combined system of atom/molecule (in terms of ionization
+channels) and an external, time-dependent field. The ionization
+channels may be coupled through various interactions, which may or may
+not affect the photoelectron. `System` only describes the channels,
+the external field, and the interactions possible, the actual process
+is described by a [`Diagram`](@ref).
+"""
 struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
               Couplings<:AbstractVector{<:AbstractMatrix{<:AbstractCoupling}},
               Field<:ElectricFields.AbstractField,
@@ -16,9 +27,16 @@ struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
     volkov::Volkov
 end
 
+"""
+    System(ionization_channels, couplings, F, ndt)
+
+Set up a [`System`](@ref) consisting of multiple
+[`IonizationChannel`](@ref)s with possible `couplings` between them,
+driven by an external field `F`, sampled at `ndt` times per cycle.
+"""
 function System(ionization_channels::AbstractVector{<:IonizationChannel},
                 couplings::AbstractVector,
-                F::ElectricFields.AbstractField, ndt::Integer)
+                F::ElectricFields.AbstractField, ndt)
     t = timeaxis(F, ndt)
     volkov = VolkovPhases(F, ndt)
 
@@ -94,6 +112,79 @@ kinematic_momentum(k::SVector{3}, A::Number) = SVector{3}(k[1], k[2], k[3]+A)
 
 # * Diagrams
 
+"""
+    Diagram(path, couplings)
+
+Goldstone diagram describing a strong-field process, i.e. after an
+initial photoionization event, the ion and photoelectron are
+propagated separately (at the chosen level of approximation, typically
+Volkov waves are used for the photoelectrons). By interacting with the
+external field, the ion state may change, and through electron
+(re)scattering, both photoelectron and ion state may change.
+
+The diagram is specified using a `path` of pairs (in antichronological
+order), where each pair designates `(resultant ion channel,
+interaction)`, where `interaction` is an index to one of the
+`couplings`. The special value `interaction == 0` corresponds to the
+initial ionization event, and should appear once and only once, at the
+end of `path` (i.e. the first event).
+
+# Examples
+
+```jldoctest
+julia> couplings = (StrongFieldApproximation.DipoleCoupling,
+                    StrongFieldApproximation.CoulombCoupling)
+(StrongFieldApproximation.DipoleCoupling, StrongFieldApproximation.CoulombCoupling)
+
+julia> Diagram([(1,0)], couplings)
+Goldstone Diagram:
+   |0⟩
+  ╱   ╲⇜
+ 1┃   │𝐤
+
+
+julia> Diagram([(2,1),(1,0)], couplings)
+Goldstone Diagram:
+   |0⟩
+  ╱   ╲⇜
+ 1┃   │𝐩
+ ⇝┃   │
+ 2┃   │𝐤
+
+
+julia> Diagram([(2,2),(1,0)], couplings)
+Goldstone Diagram:
+   |0⟩
+  ╱   ╲⇜
+ 1┃   │𝐩
+  ┠┈┈┈┤
+ 2┃   │𝐤
+
+
+julia> Diagram([(1,2),(2,2),(1,0)], couplings)
+Goldstone Diagram:
+   |0⟩
+  ╱   ╲⇜
+ 1┃   │𝐩
+  ┠┈┈┈┤
+ 2┃   │𝐪
+  ┠┈┈┈┤
+ 1┃   │𝐤
+
+
+julia> Diagram([(3,1),(1,1),(2,2),(1,0)], couplings)
+Goldstone Diagram:
+   |0⟩
+  ╱   ╲⇜
+ 1┃   │𝐩
+  ┠┈┈┈┤
+ 2┃   │𝐪
+ ⇝┃   │
+ 1┃   │
+ ⇝┃   │
+ 3┃   │𝐤
+```
+"""
 struct Diagram{Couplings}
     path::Vector{Tuple{Int,Int}}
     couplings::Couplings
@@ -110,6 +201,14 @@ end
 Diagram(path::Tuple{Int,Int}, couplings) =
     Diagram([path], couplings)
 
+"""
+    Diagram(path::AbstractVector{Tuple{Int,Int}}, system)
+
+Convenience constructor that sets up the [`Diagram`](@ref) given a
+`path` and the couplings present in `system`. If `path` is empty, the
+diagram corresponding to photoionization into the first ionization of
+channel of `system` will automatically be generated.
+"""
 function Diagram(path::AbstractVector, system::System)
     if isempty(path)
         length(system.ionization_channels) > 1 &&
@@ -318,11 +417,7 @@ Compute the induced dipole moment as a function of time of the
 [`System`](@ref), for a specific [`Diagram`](@ref).
 """
 function induced_dipole(system::System, diagram::Diagram; verbosity = 1, kwargs...)
-    if verbosity > 0
-        display(system)
-        println()
-        display(diagram)
-    end
+    verbosity > 0 && @info "Induced dipole calculation" system diagram
 
     F = system.F
     t = system.t
