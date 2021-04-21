@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · StrongFieldApproximation.jl</title><link rel="canonical" href="https://www.tipota.org/StrongFieldApproximation.jl/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">StrongFieldApproximation.jl</span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#High-order-Harmonic-Generation-(HHG)"><span>High-order Harmonic Generation (HHG)</span></a></li><li><a class="tocitem" href="#Photoelectron-Spectra"><span>Photoelectron Spectra</span></a></li></ul></li><li><a class="tocitem" href="strong_field_ionization/">Strong-field ionization</a></li><li><a class="tocitem" href="reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/master/docs/src/index.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="StrongFieldApproximation.jl"><a class="docs-heading-anchor" href="#StrongFieldApproximation.jl">StrongFieldApproximation.jl</a><a id="StrongFieldApproximation.jl-1"></a><a class="docs-heading-anchor-permalink" href="#StrongFieldApproximation.jl" title="Permalink"></a></h1><p>Documentation for <a href="https://github.com/jagot/StrongFieldApproximation.jl">StrongFieldApproximation.jl</a>.</p><p><a href="https://en.wikipedia.org/wiki/Hartree_atomic_units">Hartree atomic units</a> are used throughout, unless otherwise specified.</p><p>At the moment, two kind of observables are supported: induced dipole moment and photoelectron spectra. Time integrals are performed numerically, with recursive time integrals limited by a <code>memory</code>, i.e. how many time steps are considered (default is one cycle of the fundamental). Integrals over intermediate photoelectron momenta are performed using the saddle-point method, i.e. given two times, the stationary momentum is given by</p><p class="math-container">\[\saddle{\vec{p}} = -\frac{1}{t_2-t_1}
+\int_{t_1}^{t_2}\diff{\tau}
+[\vec{A}(\tau)-\vec{A}(T)],\]</p><p>where <span>$\vec{A}(t)$</span> is the vector potential of the external field, and <span>$T$</span> is the reference time, at which we usually have <span>$\vec{A}(T)=0$</span>. The integral is thus approximated as</p><p class="math-container">\[\int\diff{\vec{p}}
+f(\vec{p})
+\ce^{-\im S(\vec{p},a,b)}
+\approx
+\left[
+\frac{2\pi}{\im(a-b) + \epsilon}
+\right]^{3/2}
+f(\saddle{\vec{p}})
+\ce^{-\im S(\saddle{\vec{p}},a,b)}\]</p><p>where</p><p class="math-container">\[S(\vec{p},a,b)\defd
+-\frac{1}{2}
+\int_a^b\diff{\tau}
+[\vec{p}+\vec{A}(\tau)-\vec{A}(T)]^2,\]</p><p>and <span>$\epsilon$</span> is an infinitesimal regulator.</p><h2 id="High-order-Harmonic-Generation-(HHG)"><a class="docs-heading-anchor" href="#High-order-Harmonic-Generation-(HHG)">High-order Harmonic Generation (HHG)</a><a id="High-order-Harmonic-Generation-(HHG)-1"></a><a class="docs-heading-anchor-permalink" href="#High-order-Harmonic-Generation-(HHG)" title="Permalink"></a></h2><pre><code class="language-julia-repl">julia&gt; @field(F) do # Linear polarization
+           λ = 800.0u&quot;nm&quot;
+           I₀ = 3e14u&quot;W/cm^2&quot;
+           τ = 6.2u&quot;fs&quot;
+           toff = 10.0u&quot;fs&quot;
+           tmax = 13.0u&quot;fs&quot;
+           env = :trunc_gauss
+       end;
+
+julia&gt; @field(F2) do # Slightly elliptical polarization
+           λ = 800.0u&quot;nm&quot;
+           I₀ = 3e14u&quot;W/cm^2&quot;
+           τ = 6.2u&quot;fs&quot;
+           toff = 10.0u&quot;fs&quot;
+           tmax = 13.0u&quot;fs&quot;
+           env = :trunc_gauss
+           ξ = 0.2
+       end;
+
+julia&gt; ndt = 300 # Steps per cycle
+300
+
+julia&gt; Iₚ = 0.5 # Hydrogen
+0.5
+
+julia&gt; # d will be a vector of scalars
+       system,diagram,d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
+┌ Info: Induced dipole calculation
+│   system =
+│    1-channel System:
+│     1. IonizationChannel: Iₚ = 0.5 Ha = 13.6055 eV
+│
+│    Linearly polarized field with
+│      - I₀ = 8.5484e-03 au = 3.0e14 W cm⁻² =&gt;
+│        - E₀ = 9.2457e-02 au = 47.5435 GV m⁻¹
+│        - A₀ = 1.6234 au
+│      – a Fixed carrier @ λ = 800.0000 nm (T = 2.6685 fs, ω = 0.0570 Ha = 1.5498 eV)
+│      – and a Truncated Gaussian envelope of duration 256.3165 jiffies = 6.2000 fs (intensity FWHM; turn-off from 10.0000 fs to 13.0000 fs)
+│      – Uₚ = 0.6588 Ha = 17.9276 eV =&gt; α = 28.5030 Bohr = 1.5083 nm
+│   diagram =
+│    Goldstone Diagram:
+│       |0⟩
+│      ╱   ╲⇜
+│     1┃   │𝐤
+└
+Progress: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| Time: 0:00:00
+
+julia&gt; # d2 will be a vector of 3d vectors
+       system2,diagram2,d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
+┌ Info: Induced dipole calculation
+│   system =
+│    1-channel System:
+│     1. IonizationChannel: Iₚ = 0.5 Ha = 13.6055 eV
+│
+│    Transversely polarized field with
+│      - I₀ = 8.5484e-03 au = 3.0e14 W cm⁻² =&gt;
+│        - E₀ = 9.2457e-02 au = 47.5435 GV m⁻¹
+│        - A₀ = 1.6234 au
+│      – a Elliptical carrier with ξ = 0.20 (right) @ λ = 800.0000 nm (T = 2.6685 fs, ω = 0.0570 Ha = 1.5498 eV)
+│      – and a Truncated Gaussian envelope of duration 256.3165 jiffies = 6.2000 fs (intensity FWHM; turn-off from 10.0000 fs to 13.0000 fs)
+│      – Uₚ = 0.6588 Ha = 17.9276 eV =&gt; α = 28.5030 Bohr = 1.5083 nm
+│   diagram =
+│    Goldstone Diagram:
+│       |0⟩
+│      ╱   ╲⇜
+│     1┃   │𝐤
+└
+Progress: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| Time: 0:00:00</code></pre><p><img src="figures/hhg_example.svg" alt="HHG example"/></p><p>The dotted vertical line indicates the classical HHG cut-off:</p><p class="math-container">\[W_k^{\textrm{max}} = 3.17U_p + I_p.\]</p><h2 id="Photoelectron-Spectra"><a class="docs-heading-anchor" href="#Photoelectron-Spectra">Photoelectron Spectra</a><a id="Photoelectron-Spectra-1"></a><a class="docs-heading-anchor-permalink" href="#Photoelectron-Spectra" title="Permalink"></a></h2><h3 id="Attosecond-Streaking"><a class="docs-heading-anchor" href="#Attosecond-Streaking">Attosecond Streaking</a><a id="Attosecond-Streaking-1"></a><a class="docs-heading-anchor-permalink" href="#Attosecond-Streaking" title="Permalink"></a></h3><p>Attosecond streaking is a method for measuring, among other things, the vector potential of a ultrashort IR pulse. We can simulate this experiment as follows:</p><pre><code class="language-julia-repl">julia&gt; @field(pump) do
+           ħω = 80u&quot;eV&quot;
+           I₀ = 1e8u&quot;W/cm^2&quot;
+           τ = 200u&quot;as&quot;
+           toff = 400u&quot;as&quot;
+           tmax = 500u&quot;as&quot;
+           env = :trunc_gauss
+       end;
+
+julia&gt; @field(probe) do
+           λ = 800.0u&quot;nm&quot;
+           I₀ = 1e12u&quot;W/cm^2&quot;
+           τ = 2.66u&quot;fs&quot;
+           toff = 4.0u&quot;fs&quot;
+           tmax = 5.0u&quot;fs&quot;
+           env = :trunc_gauss
+       end;
+
+julia&gt; F = pump + delay(probe, 1.0u&quot;fs&quot;);
+
+julia&gt; ndt = 100
+100
+
+julia&gt; nk = 100
+100
+
+julia&gt; nθ = 2 # Forward and backward spectra only
+2
+
+julia&gt; k,kmag,θ = momentum_grid(50u&quot;eV&quot;, 80u&quot;eV&quot;, nk, nθ,
+                                spacing=:energy);
+
+julia&gt; Iₚ = 14u&quot;eV&quot; # &quot;Krypton&quot;
+14 eV
+
+julia&gt; c = photoelectron_spectrum(k, Iₚ, F, ndt);
+┌ Info: Photoelectrum spectrum calculation
+│   system =
+│    1-channel System:
+│     1. IonizationChannel: Iₚ = 0.5144905104572604 Ha = 13.99980128005251 eV
+│
+│    ┌ Linearly polarized field with
+│    │   - I₀ = 2.8495e-09 au = 1.0e8 W cm⁻² =&gt;
+│    │     - E₀ = 5.3380e-05 au = 27.4492 MV m⁻¹
+│    │     - A₀ = 0.0000 au
+│    │   – a Fixed carrier @ λ = 15.4980 nm (T = 51.6958 as, ω = 2.9399 Ha = 80.0000 eV)
+│    │   – and a Truncated Gaussian envelope of duration 8.2683 jiffies = 200.0000 as (intensity FWHM; turn-off from 400.0000 as to 500.0000 as)
+│    │   – Uₚ = 0.0000 Ha = 2.2427 neV =&gt; α = 0.0000 Bohr = 326.8159 am
+│    ⊕
+│    │ Linearly polarized field with
+│    │   - I₀ = 2.8495e-05 au = 1.0e12 W cm⁻² =&gt;
+│    │     - E₀ = 5.3380e-03 au = 2.7449 GV m⁻¹
+│    │     - A₀ = 0.0937 au
+│    │   – a Fixed carrier @ λ = 800.0000 nm (T = 2.6685 fs, ω = 0.0570 Ha = 1.5498 eV)
+│    │   – and a Truncated Gaussian envelope of duration 109.9681 jiffies = 2.6600 fs (intensity FWHM; turn-off from 4.0000 fs to 5.0000 fs)
+│    │   – Uₚ = 0.0022 Ha = 59.7587 meV =&gt; α = 1.6456 Bohr = 87.0824 pm
+│    └   – delayed by 41.3414 jiffies = 1.0000 fs
+│
+│   diagram =
+│    Goldstone Diagram:
+│       |0⟩
+│      ╱   ╲⇜
+│     1┃   │𝐤
+│
+└   length(k) = 200</code></pre><p><img src="figures/streaking_single_delay.svg" alt="Streaking single delay"/></p><p>By sweeping the pump–probe delay, we can construct the following streaking spectrogram: <img src="figures/streaking_spectrogram.svg" alt="Streaking spectrogram"/></p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="strong_field_ionization/">Strong-field ionization »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 21 April 2021 15:20">Wednesday 21 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
