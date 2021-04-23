@@ -126,8 +126,10 @@ The diagram is specified using a `path` of pairs (in antichronological
 order), where each pair designates `(resultant ion channel,
 interaction)`, where `interaction` is an index to one of the
 `couplings`. The special value `interaction == 0` corresponds to the
-initial ionization event, and should appear once and only once, at the
-end of `path` (i.e. the first event).
+initial ionization event, and should appear once at the end of `path`
+(i.e. the first event); if it also appears as the first element of
+`path` (i.e. the last event), it corresponds to recombination to the
+initial state.
 
 # Examples
 
@@ -142,6 +144,14 @@ Goldstone Diagram:
   ╱   ╲⇜
  1┃   │𝐤
 
+
+julia> Diagram([(1,0),(1,0)], couplings)
+Goldstone Diagram:
+   |0⟩
+  ╱   ╲⇜
+ 1┃   │𝐩
+  ╲   ╱⇝
+   |0⟩
 
 julia> Diagram([(2,1),(1,0)], couplings)
 Goldstone Diagram:
@@ -194,6 +204,14 @@ struct Diagram{Couplings}
             which == 0 ||
                 throw(ArgumentError("Non-empty diagrams must have photoionization as the first interaction"))
         end
+        for i = 2:length(path)-1
+            path[i][2] == 0 &&
+                throw(ArgumentError("Only the first and last interaction in a diagram may have which = 0 (corresponding to ionization/recombination)"))
+        end
+        if length(path) > 1 && path[1][2] == 0
+            path[1][1] == path[2][1] ||
+                throw(ArgumentError("Must recombine from the last channel"))
+        end
         new{Couplings}(path, couplings)
     end
 end
@@ -215,7 +233,7 @@ function Diagram(path::AbstractVector, system::System)
             @warn "More than one ionization channel present in system, choosing the first"
         path = [(1,0)]
     end
-    Diagram(path, [eltype(c) for c in system.couplings])
+    Diagram(path, [typeof(first(c)) for c in system.couplings])
 end
 
 Diagram(system::System) = Diagram([], system)
@@ -224,6 +242,20 @@ for f in [:length, :first, :firstindex, :lastindex, :isempty]
     @eval Base.$f(d::Diagram) = $f(d.path)
 end
 Base.getindex(d::Diagram, i) = Diagram(d.path[i], d.couplings)
+
+function draw_ionization(io, nd)
+    println(io, lpad("|0⟩", nd+4))
+    print(io, lpad("╱ ╲", nd+4))
+    printstyled(io, "⇜", color=:light_red)
+    println(io)
+end
+
+function draw_recombination(io, nd)
+    print(io, lpad("╲ ╱", nd+4))
+    printstyled(io, "⇝", color=:light_red)
+    println(io)
+    println(io, lpad("|0⟩", nd+4))
+end
 
 draw_exciton(io, ion, nd, electron="") =
     println(io, lpad(ion, nd)*"┃   │$(electron)")
@@ -243,14 +275,16 @@ function Base.show(io::IO, ::MIME"text/plain", d::Diagram)
         return
     end
     nd = maximum(iw -> length(digits(iw[1])), d.path)+1
-    println(io, lpad("|0⟩", nd+4))
-    print(io, lpad("╱   ╲", nd+5))
     electrons = ["𝐩","𝐪"]
     cur_electron = 1
     for (i,(ion,which)) in Iterators.reverse(enumerate(d.path))
-        which == 0 && printstyled(io, "⇜", color=:light_red)
-        i == length(d.path) && println(io)
-        if !iszero(which)
+        if which == 0
+            if i == length(d.path)
+                draw_ionization(io, nd)
+            elseif i == 1
+                draw_recombination(io, nd)
+            end
+        else
             c = d.couplings[which]
             if c <: CoulombCoupling
                 draw_coulomb_interaction(io, nd)
@@ -263,13 +297,13 @@ function Base.show(io::IO, ::MIME"text/plain", d::Diagram)
         elseif !iszero(which) && d.couplings[which] <: DipoleCoupling
             ""
         else
-            i = mod1(cur_electron,length(electrons))
-            e = electrons[i]*repeat("′", fld1(cur_electron,length(electrons))-1)
+            ei = mod1(cur_electron,length(electrons))
+            e = electrons[ei]*repeat("′", fld1(cur_electron,length(electrons))-1)
             cur_electron += 1
             e
         end
 
-        draw_exciton(io, ion, nd, electron)
+        which == 0 && i == 1 && length(d) > 1 || draw_exciton(io, ion, nd, electron)
     end
 end
 
@@ -280,6 +314,10 @@ function get_interaction(system::System, diagram::Diagram)
         @assert length(diagram) == 1
         return α, (𝐤, 𝐩, i) -> source_term(target_channel, system.t[i], 𝐤)
     end
+    length(diagram) ≥ 2 ||
+        throw(ArgumentError("Interaction requires two states (before, after)"))
+    β = first(diagram[2])[1]
+    α, system.couplings[which][α,β]
 end
 
 # * Recursions
@@ -386,6 +424,50 @@ function recurse(::Type{Amp}, system::System, 𝐤, iref, irange,
     recurse(canonical_momentum_conservation(system, which),
             Amp, system, 𝐤, iref, irange,
             diagram; kwargs...)
+end
+
+
+function analyze_diagram(system, diagram)
+    α,which = first(diagram)
+    ions = Int[]
+    # For photoelectron spectra, time 1 is the reference time,
+    # typically at which the laser pulse has ended; for direct
+    # photoelectron diagrams, time 2 is the time of ionization. For
+    # dipoles, time 1 is the time of recombination.
+    unique_momenta = Tuple{Int,Int}[(1,2)]
+    momenta = [1]
+    indeterminate_momenta = Int[]
+    ld = length(diagram)
+    order = ld
+
+    if ld > 1
+        if which == 0
+            push!(indeterminate_momenta, 1)
+            # Recombination does not increase the order of the diagram, since
+            # it only amounts to projecting the wavefunction on ⟨0|𝐫.
+            order -= 1
+        end
+    else
+        push!(ions, α)
+    end
+
+    i = 2
+    for (α,which) in diagram.path[(iszero(which) ? 2 : 1):end]
+        push!(ions, α)
+        a,b = unique_momenta[end]
+        unique_momenta[end] = (a,i)
+        if !(iszero(which) || canonical_momentum_conservation(system, which) == CanonicalMomentumConservation())
+            push!(unique_momenta, (i,i+1))
+            push!(indeterminate_momenta, length(unique_momenta))
+        end
+        if !iszero(which)
+            push!(momenta, length(unique_momenta))
+        end
+
+        i += 1
+    end
+
+    return ions, unique_momenta, momenta, indeterminate_momenta, order
 end
 
 # * High-level interface
