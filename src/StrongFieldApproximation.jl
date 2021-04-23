@@ -11,6 +11,7 @@ using StaticArrays
 using ProgressMeter
 
 include("threading.jl")
+include("telescope_iterators.jl")
 
 include("atom_models.jl")
 include("momentum_grid.jl")
