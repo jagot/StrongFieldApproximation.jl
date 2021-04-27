@@ -39,7 +39,7 @@ function System(ionization_channels::AbstractVector{<:IonizationChannel},
     t = timeaxis(F, fs)
     volkov = VolkovPhases(F, t)
 
-    𝐀 = vector_potential(F, t)
+    𝐀 = vector_potential.(F, t)
     System(ionization_channels, couplings, 𝐀, t, step(t), volkov)
 end
 
@@ -86,39 +86,6 @@ canonical_momentum_conservation(system::System, which::Integer) =
     iszero(which) ?
     CanonicalMomentumConservation() :
     canonical_momentum_conservation(first(system.couplings[which]))
-
-# * Intermediate momenta
-
-struct IntermediateMomentum{I₁<:Union{Nothing,Integer},I₂<:Union{Nothing,Integer},Times,Volkov}
-    i₁::I₁ # Start time
-    i₂::I₂ # End time = return time
-    t::Times
-    volkov::Volkov
-end
-
-IntermediateMomentum(i₁, i₂, system::System) =
-    IntermediateMomentum(i₁, i₂, system.t, system.volkov)
-
-Base.show(io::IO, 𝐩::IntermediateMomentum) =
-    write(io, "IntermediateMomentum($(𝐩.i₁)..$(𝐩.i₂), ...)")
-
-
-momentum(𝐩::IntermediateMomentum) = stationary_momentum(𝐩.volkov, 𝐩.i₂, 𝐩.i₁)
-momentum(𝐤) = 𝐤
-
-fix_momentum(𝐩::IntermediateMomentum{Nothing,<:Integer}, system::System, i) =
-    IntermediateMomentum(i, 𝐩.i₂, system)
-
-fix_momentum(𝐩::IntermediateMomentum{<:Integer,Nothing}, system::System, i) =
-    IntermediateMomentum(𝐩.i₁, i, system)
-
-fix_momentum(𝐤, args...) = 𝐤
-
-
-excursion(𝐩::IntermediateMomentum) = 𝐩.t[𝐩.i₂] - 𝐩.t[𝐩.i₁]
-prefactor(𝐩::IntermediateMomentum; ϵ=1e-2*√(eps(eltype(𝐩.t)))) where T = (2π/(im*excursion(𝐩) + ϵ))^(3/2)
-
-prefactor(::Any) = true
 
 kinematic_momentum(k::Number, A::Number) = k + A
 kinematic_momentum(k::SVector{3}, A::SVector{3}) = k + A
@@ -321,125 +288,7 @@ function Base.show(io::IO, ::MIME"text/plain", d::Diagram)
     end
 end
 
-function get_interaction(system::System, diagram::Diagram)
-    α, which = first(diagram)
-    target_channel = system.ionization_channels[α]
-    if iszero(which)
-        @assert length(diagram) == 1
-        return α, (𝐤, 𝐩, i) -> source_term(target_channel, system.t[i], 𝐤)
-    end
-    length(diagram) ≥ 2 ||
-        throw(ArgumentError("Interaction requires two states (before, after)"))
-    β = first(diagram[2])[1]
-    α, system.couplings[which][α,β]
-end
-
-# * Recursions
-
-@doc raw"""
-    recurse_common(fun, system::System, 𝐤, 𝐩, iref, irange, α, path; ϵ, memory)
-
-At time ``t`` = `system.t[iref]`, we have an interaction, which
-involves the photoelectrons and the ions:
-
-```math
-\begin{equation*}
-\bra{\alpha}
-\matrixel{\vec{k}}{V(t)}{\vec{p}}
-\ket{\beta}
-\end{equation*}
-```
-
-``\alpha`` and ``\vec{k}`` are given, i.e. this is what we want the
-interaction to result in. If ``V(t)`` does not change the
-photoelectron momentum, we have ``\vec{p}=\vec{k}``, but otherwise, we
-have to determine the intermediate momentum ``\vec{p}`` from the
-semiclassical action ending at time ``t`` and starting at an earlier
-``t_{\textrm{prev}}``, which is the closes preceding event where the
-photoelectron momentum changed, i.e. a previous scattering or the
-initial photoionization.
-
-"""
-function recurse_common(::Type{Amp},
-                        system::System{T}, 𝐤, 𝐩, iref, irange,
-                        diagram::Diagram; weight::Function = 𝐪 -> true,
-                        ϵ=1e-2*√(eps(T)), memory=system.ndt) where {Amp,T}
-    α,interaction = get_interaction(system, diagram)
-
-    Iₚ = system.ionization_channels[α].E
-    tref = system.t[iref]
-    amplitude = complex(zero(Amp))
-
-    𝐀 = Base.Fix1(vector_potential, system.F)
-
-    for i in irange
-        tᵢ = system.t[i]
-        τ = (tref-tᵢ) # Excursion time
-
-        # At the time ti, the interaction takes us from ion
-        # state β to α; we therefore need to accumulate phase in the α
-        # channel in the interval ti..system.t[iref], and in
-        # the β channel in the interval
-        # system.t[irange[1]]..ti.
-        Sᵢₒₙ = Iₚ*τ
-        aᵢₒₙ = exp(-im*Sᵢₒₙ)
-
-        # If 𝐩 is a determinate momentum, recurse will just return the
-        # same value, i.e. this is the one we use to propagate the
-        # Volkov waves. If however 𝐩 is an intermediate momentum, we
-        # need to find its starting time, which we do by passing it
-        # along recursively until we hit either an interaction that
-        # changes the photoelectron momentum, or the initial time of
-        # ionization.
-        sub_amplitude,𝐩 = recurse(Amp, system, 𝐩, i, max(1,i-memory):i-1,
-                                  diagram[2:end],
-                                  ϵ=ϵ, memory=memory)
-
-        # 𝐩 is now either a determinate momentum, or an indeterminate
-        # momentum, but with two times: a starting time and a stopping
-        # time, which we can use to find the saddle-point momentum.
-        𝐩ₛₜ = momentum(𝐩)
-        𝐤ᵢ = momentum(fix_momentum(𝐤, system, i))
-
-        Sₑₗ = volkov_phase(𝐩ₛₜ, system.volkov, iref, i)
-        𝐀ᵢ = 𝐀(tᵢ)
-        a = weight(𝐩ₛₜ)*prefactor(𝐩)*aᵢₒₙ*exp(-im*Sₑₗ)*interaction(kinematic_momentum(𝐤ᵢ, 𝐀ᵢ), kinematic_momentum(𝐩ₛₜ, 𝐀ᵢ), i)
-
-        amplitude += a*sub_amplitude
-    end
-
-    -im*system.dt*amplitude, 𝐤
-end
-
-# Canonical momentum is preserved, e.g. direct ionization in ATI or
-# dipole interaction between ion states.
-recurse(::CanonicalMomentumConservation,
-        ::Type{Amp}, system::System, 𝐤, args...; kwargs...) where Amp =
-    recurse_common(Amp, system, 𝐤, 𝐤, args...; kwargs...)
-
-# Canonical momentum is not preserved in the interaction,
-# e.g. scattering of the nucleus/remaining electrons. We therefore
-# have to find the stationary momentum that leads back to the parent
-# ion during the time interval i..iref.
-function recurse(::NoCanonicalMomentumConservation,
-                 ::Type{Amp}, system::System, 𝐤, iref, args...; kwargs...) where Amp
-    𝐩 = IntermediateMomentum(nothing, iref, system)
-    recurse_common(Amp, system, 𝐤, 𝐩, iref, args...; kwargs...)
-end
-
-function recurse(::Type{Amp}, system::System, 𝐤, iref, irange,
-                 diagram::Diagram; kwargs...) where Amp
-    # The base case corresponds to the ionization time, and hence we
-    # fix the (possibly intermediate) momentum 𝐤 to have its starting
-    # time at system.t[iref].
-    isempty(diagram) && return true, fix_momentum(𝐤, system, iref)
-
-    α, which = first(diagram)
-    recurse(canonical_momentum_conservation(system, which),
-            Amp, system, 𝐤, iref, irange,
-            diagram; kwargs...)
-end
-
+# * Integrate diagrams
 
 function analyze_diagram(system, diagram)
     α,which = first(diagram)
@@ -484,19 +333,144 @@ function analyze_diagram(system, diagram)
     return ions, unique_momenta, momenta, indeterminate_momenta, order
 end
 
+# 𝐤 is nothing, we want a dipole amplitude
+function diagram_amplitude(::Type{Amp}, system::System, diagram::Diagram, iref, i, ::Nothing) where Amp
+    amplitude = complex(zero(Amp))
+
+    amplitude
+end
+
+# 𝐤 is determinate, we want a photoelectron spectrum
+function diagram_amplitude(::Type{Amp}, system::System, diagram::Diagram, iref, i, 𝐤) where Amp
+    amplitude = complex(zero(Amp))
+
+    amplitude
+end
+
+momentum_type(_, 𝐤) = typeof(𝐤)
+momentum_type(system, ::Nothing) = eltype(system.volkov.∫A)
+
+set_momentum!(𝐩s::AbstractVector{<:Number}, 𝐩ₛₜ::Number, i) =
+    setindex!(𝐩s, 𝐩ₛₜ, i)
+set_momentum!(𝐩s::AbstractVector{<:SVector{3}}, 𝐩ₛₜ::SVector{3}, i) =
+    setindex!(𝐩s, 𝐩ₛₜ, i)
+set_momentum!(𝐩s::AbstractVector{<:SVector{3}}, 𝐩ₛₜ::T, i) where {T<:Number} =
+    setindex!(𝐩s, SVector{3,T}(zero(T), zero(T), 𝐩ₛₜ), i)
+
+function evaluate_momenta!(𝐩s, prefactors, system, unique_momenta, indeterminate_momenta, i; ϵ=1e-2*√(eps(eltype(system.t))))
+    for idm in indeterminate_momenta
+        uidm = unique_momenta[idm]
+        a,b = i[uidm[1]],i[uidm[2]]
+        set_momentum!(𝐩s, stationary_momentum(system.volkov, a, b), idm)
+        τ = system.t[a]-system.t[b]
+        ζ = (2π/(im*τ + ϵ))^(3/2)
+        prefactors[idm] = ζ
+    end
+end
+
+function ionization(system::System, diagram::Diagram, 𝐩, 𝐀, i)
+    α,which = diagram.path[end]
+    @assert which == 0
+    source_term(system.ionization_channels[α],
+                i,
+                kinematic_momentum(𝐩, 𝐀[i]))
+end
+
+function recombination(system::System, diagram::Diagram, 𝐩, 𝐀, i)
+    α,which = first(diagram)
+    if which == 0 && length(diagram) > 1
+        d = system.ionization_channels[α].st.d
+        conj(d(kinematic_momentum(𝐩, 𝐀[i])))
+    else
+        true
+    end
+end
+
+function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 𝐤=nothing; memory=typemax(Int), imin=1) where Amp
+    ions, unique_momenta, momenta, indeterminate_momenta, order = analyze_diagram(system, diagram)
+
+    weight = (-im*system.dt)^order
+
+    # println()
+    # @info "Integrating diagram up to" iref system diagram ions unique_momenta momenta indeterminate_momenta order weight 𝐤
+
+    # @show
+    Eᵢₒₙₛ = [system.ionization_channels[ion].E for ion in ions]
+    𝐩s = complex(zeros(momentum_type(system, 𝐤), length(unique_momenta)))
+    prefactors = ones(complex(eltype(system.t)), length(unique_momenta))
+    if !isnothing(𝐤)
+        𝐩s[1] = 𝐤
+    end
+    # @show 𝐩s
+
+    𝐀 = system.𝐀
+    amplitude = complex(zero(Amp))
+    ctT = complex(eltype(system.t))
+
+    is = vcat(iref, zeros(Int, order))
+
+    for i in TelescopeIterator(max(1,imin):iref-1, order, memory)
+        is[2:end] .= i
+        # is = vcat(iref, i)
+        # is = (iref,i...)
+        # for i in 1:iref-1, j in 1:i-1
+        #     is = (iref,i,j)
+        # println(is)
+
+        evaluate_momenta!(𝐩s, prefactors, system, unique_momenta, indeterminate_momenta, is)
+        # @show 𝐩s prefactors
+
+        Sᵢₒₙ = zero(ctT)
+        Sₑₗ = zero(ctT)
+        for j = 1:order
+            a,b = is[j], is[j+1]
+            τ = system.t[a] - system.t[b]
+            Sᵢₒₙ += Eᵢₒₙₛ[j]*τ
+            Sₑₗ += volkov_phase(𝐩s[j], system.volkov, a, b)
+        end
+        S = Sᵢₒₙ + Sₑₗ
+        aₚᵣₒₚ = prod(prefactors)*exp(-im*S)
+
+        # @show is prefactors
+
+        ∂a = (ionization(system, diagram, 𝐩s[end], 𝐀, is[end]) *
+              aₚᵣₒₚ *
+              recombination(system, diagram, 𝐩s[1], 𝐀, iref))
+
+        # Loop over "interior" interactions
+        for j = (order>1 && first(diagram)[2]==0 ? 3 : 2):order
+            ion,which = diagram.path[j-1]
+            α = ions[j-1]
+            β = ions[j]
+            # @show j, ion, which α,β
+            interaction = system.couplings[which][α,β]
+
+            𝐤ᵢ = 𝐩s[momenta[j-1]]
+            𝐩ᵢ = 𝐩s[momenta[j]]
+            𝐀ᵢ = 𝐀[is[j]]
+
+            ∂a *= interaction(kinematic_momentum(𝐤ᵢ, 𝐀ᵢ), kinematic_momentum(𝐩ᵢ, 𝐀ᵢ), is[j+1])
+        end
+
+        # ∂a = prod(prefactors)
+        amplitude += ∂a
+    end
+
+    weight*amplitude
+end
+
 # * High-level interface
 
 function photoelectron_spectrum(k::AbstractArray{T},
                                 system::System, diagram::Diagram;
+                                iref=length(system.t),
                                 verbosity=1, kwargs...) where T
     verbosity > 0 && @info "Photoelectrum spectrum calculation" system diagram length(k)
 
     cT = complex(eltype(T))
     c = similar(k, cT)
-    iref = length(system.t)
-    irange = 1:iref
     threaded_range_loop(eachindex(k)) do i
-        c[i] = first(recurse(cT, system, k[i], iref, irange, diagram; kwargs...))
+        c[i] = integrate_diagram(cT, system, diagram, iref, k[i]; kwargs...)
     end
     c
 end
@@ -515,33 +489,25 @@ Compute the induced dipole moment as a function of time of the
 function induced_dipole(system::System, diagram::Diagram; verbosity = 1, kwargs...)
     verbosity > 0 && @info "Induced dipole calculation" system diagram
 
-    F = system.F
     t = system.t
 
-    DT = typeof(field_amplitude(F, first(t)))
+    DT = eltype(system.𝐀)
     𝐝 = zeros(DT, length(t))
 
-    α = first(first(diagram))
-
-    d = system.ionization_channels[α].st.d
-    𝐀 = Base.Fix1(vector_potential, F)
-    recombination = t -> (𝐩 -> conj(d(kinematic_momentum(𝐩, 𝐀(t)))))
-
-    memory = get(kwargs, :memory, system.ndt)
+    memory = get(kwargs, :memory, typemax(Int))
 
     @showprogress for (i,t) in enumerate(t)
-        𝐩 = IntermediateMomentum(nothing, i, system)
-        𝐝̃,𝐩 = recurse(DT, system, 𝐩, i, max(1,i-memory):i-1,
-                      diagram; weight=recombination(t), kwargs...)
+        𝐝̃ = integrate_diagram(DT, system, diagram, i; imin=i-memory, kwargs...)
         𝐝[i] = 2real(𝐝̃)
     end
 
-    (system=system, diagram=diagram, dipole=𝐝)
+    𝐝
 end
 
 function induced_dipole(args...; kwargs...)
     system = System(args...; kwargs...)
-    induced_dipole(system, Diagram(system); kwargs...)
+    diagram = Diagram([(1,0),(1,0)], system)
+    induced_dipole(system, diagram; kwargs...)
 end
 
 # * Exports

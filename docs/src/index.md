@@ -13,8 +13,8 @@ throughout, unless otherwise specified.
 At the moment, two kind of observables are supported: induced dipole
 moment and photoelectron spectra. Time integrals are performed
 numerically, with recursive time integrals limited by a `memory`,
-i.e. how many time steps are considered (default is one cycle of the
-fundamental). Integrals over intermediate photoelectron momenta are
+i.e. how many time steps are considered (default is from the beginning
+of the pulse). Integrals over intermediate photoelectron momenta are
 performed using the saddle-point method, i.e. given two times, the
 stationary momentum is given by
 ```math
@@ -73,49 +73,40 @@ julia> ndt = 300 # Steps per cycle
 julia> Iₚ = 0.5 # Hydrogen
 0.5
 
-julia> # d will be a vector of scalars
-       system,diagram,d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
+julia> # d will be a vector of scalars; by limiting the "memory" of the
+       # integrals, we can include only the short trajectory.
+       d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
 ┌ Info: Induced dipole calculation
 │   system =
 │    1-channel System:
 │     1. IonizationChannel: Iₚ = 0.5 Ha = 13.6055 eV
 │
-│    Linearly polarized field with
-│      - I₀ = 8.5484e-03 au = 3.0e14 W cm⁻² =>
-│        - E₀ = 9.2457e-02 au = 47.5435 GV m⁻¹
-│        - A₀ = 1.6234 au
-│      – a Fixed carrier @ λ = 800.0000 nm (T = 2.6685 fs, ω = 0.0570 Ha = 1.5498 eV)
-│      – and a Truncated Gaussian envelope of duration 256.3165 jiffies = 6.2000 fs (intensity FWHM; turn-off from 10.0000 fs to 13.0000 fs)
-│      – Uₚ = 0.6588 Ha = 17.9276 eV => α = 28.5030 Bohr = 1.5083 nm
 │   diagram =
 │    Goldstone Diagram:
 │       |0⟩
-│      ╱   ╲⇜
-│     1┃   │𝐤
+│       ╱ ╲⇜
+│     1┃   │𝐩
+│       ╲ ╱⇝
+│       |0⟩
 └
-Progress: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| Time: 0:00:00
+Progress: 100%|████████████████████████████████████████████████████████████████| Time: 0:00:00
 
 julia> # d2 will be a vector of 3d vectors
-       system2,diagram2,d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
+       d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
 ┌ Info: Induced dipole calculation
 │   system =
 │    1-channel System:
 │     1. IonizationChannel: Iₚ = 0.5 Ha = 13.6055 eV
 │
-│    Transversely polarized field with
-│      - I₀ = 8.5484e-03 au = 3.0e14 W cm⁻² =>
-│        - E₀ = 9.2457e-02 au = 47.5435 GV m⁻¹
-│        - A₀ = 1.6234 au
-│      – a Elliptical carrier with ξ = 0.20 (right) @ λ = 800.0000 nm (T = 2.6685 fs, ω = 0.0570 Ha = 1.5498 eV)
-│      – and a Truncated Gaussian envelope of duration 256.3165 jiffies = 6.2000 fs (intensity FWHM; turn-off from 10.0000 fs to 13.0000 fs)
-│      – Uₚ = 0.6588 Ha = 17.9276 eV => α = 28.5030 Bohr = 1.5083 nm
 │   diagram =
 │    Goldstone Diagram:
 │       |0⟩
-│      ╱   ╲⇜
-│     1┃   │𝐤
+│       ╱ ╲⇜
+│     1┃   │𝐩
+│       ╲ ╱⇝
+│       |0⟩
 └
-Progress: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| Time: 0:00:00
+Progress: 100%|████████████████████████████████████████████████████████████████| Time: 0:00:00
 ```
 ![HHG example](figures/hhg_example.svg)
 
@@ -174,30 +165,14 @@ julia> c = photoelectron_spectrum(k, Iₚ, F, ndt);
 │    1-channel System:
 │     1. IonizationChannel: Iₚ = 0.5144905104572604 Ha = 13.99980128005251 eV
 │
-│    ┌ Linearly polarized field with
-│    │   - I₀ = 2.8495e-09 au = 1.0e8 W cm⁻² =>
-│    │     - E₀ = 5.3380e-05 au = 27.4492 MV m⁻¹
-│    │     - A₀ = 0.0000 au
-│    │   – a Fixed carrier @ λ = 15.4980 nm (T = 51.6958 as, ω = 2.9399 Ha = 80.0000 eV)
-│    │   – and a Truncated Gaussian envelope of duration 8.2683 jiffies = 200.0000 as (intensity FWHM; turn-off from 400.0000 as to 500.0000 as)
-│    │   – Uₚ = 0.0000 Ha = 2.2427 neV => α = 0.0000 Bohr = 326.8159 am
-│    ⊕
-│    │ Linearly polarized field with
-│    │   - I₀ = 2.8495e-05 au = 1.0e12 W cm⁻² =>
-│    │     - E₀ = 5.3380e-03 au = 2.7449 GV m⁻¹
-│    │     - A₀ = 0.0937 au
-│    │   – a Fixed carrier @ λ = 800.0000 nm (T = 2.6685 fs, ω = 0.0570 Ha = 1.5498 eV)
-│    │   – and a Truncated Gaussian envelope of duration 109.9681 jiffies = 2.6600 fs (intensity FWHM; turn-off from 4.0000 fs to 5.0000 fs)
-│    │   – Uₚ = 0.0022 Ha = 59.7587 meV => α = 1.6456 Bohr = 87.0824 pm
-│    └   – delayed by 41.3414 jiffies = 1.0000 fs
-│
 │   diagram =
 │    Goldstone Diagram:
 │       |0⟩
-│      ╱   ╲⇜
+│       ╱ ╲⇜
 │     1┃   │𝐤
 │
 └   length(k) = 200
+Progress: 100%|████████████████████████████████████████████████████████████████| Time: 0:00:01
 ```
 ![Streaking single delay](figures/streaking_single_delay.svg)
 

@@ -13,7 +13,7 @@ struct DipoleSourceTerm{Dipole<:Function,Field<:Union{ElectricFields.AbstractFie
 
     function DipoleSourceTerm(d::Dipole, F::Field, fs::Number) where {Dipole<:Function, Field<:ElectricFields.AbstractField}
         t = timeaxis(F, fs)
-        Fv = field_amplitude(F, t)
+        Fv = field_amplitude.(F, t)
         new{Dipole,typeof(Fv)}(d, Fv)
     end
 
@@ -63,6 +63,7 @@ struct NoCanonicalMomentumConservation <:  AbstractCanonicalMomentumConservation
 abstract type AbstractCoupling end
 Base.iszero(::AbstractCoupling) = false
 canonical_momentum_conservation(::AbstractCoupling) = NoCanonicalMomentumConservation()
+canonical_momentum_conservation(::Type{<:AbstractCoupling}) = NoCanonicalMomentumConservation()
 
 struct NoCoupling <: AbstractCoupling end
 Base.iszero(::NoCoupling) = true
@@ -76,6 +77,7 @@ struct DipoleCoupling{DipoleMoment<:Union{Number,SVector{3}},Field<:ElectricFiel
 end
 
 canonical_momentum_conservation(::DipoleCoupling) = CanonicalMomentumConservation()
+canonical_momentum_conservation(::Type{<:DipoleCoupling}) = CanonicalMomentumConservation()
 
 # ** Coulomb couplings
 
@@ -86,3 +88,5 @@ momentum_transfer(k::SVector{3}, p::Number) = SVector{3}(k[1], k[2], k[3]-p)
 struct CoulombCoupling{Coupling} <: AbstractCoupling
     coupling::Coupling
 end
+
+(cc::CoulombCoupling)(𝐤, 𝐩, _) = cc.coupling(𝐤, 𝐩)

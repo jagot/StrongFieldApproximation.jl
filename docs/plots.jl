@@ -65,11 +65,12 @@ function hhg_example()
     ndt = 300 # Steps per cycle
     Iₚ = 0.5 # Hydrogen
 
-    # d will be a vector of scalars
-    system,diagram,d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
+    # d will be a vector of scalars; by limiting the "memory" of the
+    # integrals, we can include only the short trajectory.
+    d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
 
     # d2 will be a vector of 3d vectors
-    system2,diagram2,d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
+    d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
 
     t = timeaxis(F, ndt)
     tplot = 24.2e-3t
