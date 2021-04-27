@@ -28,8 +28,28 @@ function VolkovPhases(F::ElectricFields.AbstractField, t::AbstractVector)
     VolkovPhases(t .- tend, ∫Av, ∫A²v)
 end
 
-VolkovPhases(F, ndt::Integer) =
-    VolkovPhases(F, timeaxis(F, ndt))
+# This is second-order accurate, assuming Av[1] == Av[end] == 0
+function VolkovPhases(Av::AbstractVector{At}, t::AbstractVector{Tt}) where {At,Tt}
+    nt = length(t)
+    dt = step(t)
+    ∫Av = zeros(At, nt)
+    ∫A²v = zeros(Tt, nt)
+
+    tend = t[end]
+    Aend = Av[end]
+
+    ∫Av[end] = -Av[end]*dt
+    ∫A²v[end] = -sum(abs2, Av[end])*dt
+
+    for i = nt-1:-1:1
+        dA = (Av[i] + Av[i+1])/2
+        dA² = sum(abs2, dA)
+        ∫Av[i] = ∫Av[i+1] - dA*dt
+        ∫A²v[i] = ∫A²v[i+1] - dA²*dt
+    end
+
+    VolkovPhases(t .- tend, ∫Av, ∫A²v)
+end
 
 volkov_phase_k²(k, v, i) = norm(k)^2*v.t[i]
 

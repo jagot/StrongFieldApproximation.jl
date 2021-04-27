@@ -4,17 +4,32 @@ abstract type AbstractSourceTerm end
 
 # ** Dipole
 
-struct DipoleSourceTerm{Dipole<:Function,Field<:ElectricFields.AbstractField} <: AbstractSourceTerm
+struct DipoleSourceTerm{Dipole<:Function,Field<:Union{ElectricFields.AbstractField,AbstractVector}} <: AbstractSourceTerm
     d::Dipole
-    Fv::Field
+    F::Field
+
+    DipoleSourceTerm(d::Dipole, F::Field) where {Dipole<:Function, Field<:ElectricFields.AbstractField} =
+        new{Dipole,Field}(d, F)
+
+    function DipoleSourceTerm(d::Dipole, F::Field, fs::Number) where {Dipole<:Function, Field<:ElectricFields.AbstractField}
+        t = timeaxis(F, fs)
+        Fv = field_amplitude(F, t)
+        new{Dipole,typeof(Fv)}(d, Fv)
+    end
+
+    DipoleSourceTerm(d::Dipole, Fv::FieldAmplitude, Av::AbstractVector, t::AbstractRange) where {Dipole<:Function, FieldAmplitude<:AbstractVector} =
+        new{Dipole,FieldAmplitude}(d, Fv)
 end
 
 dipole(F::Number, d::Number) = F*d
 dipole(F::SVector{3}, d::SVector{3}) = dot(F, d)
 dipole(F::Number, d::SVector{3}) = F*d[3]
 
-source_term(d::DipoleSourceTerm, t, p) =
-    dipole(field_amplitude(d.Fv, t), d.d(p))
+source_term(d::DipoleSourceTerm{<:Any,<:ElectricFields.AbstractField}, t, p) =
+    dipole(field_amplitude(d.F, t), d.d(p))
+
+source_term(d::DipoleSourceTerm{<:Any,<:AbstractVector}, i::Integer, p) =
+    dipole(d.F[i], d.d(p))
 
 # * Ionizations channels
 
@@ -33,8 +48,8 @@ end
 source_term(ic::IonizationChannel, args...) =
     source_term(ic.st, args...)
 
-IonizationChannel(E, F::ElectricFields.AbstractField) =
-    IonizationChannel(austrip(E), DipoleSourceTerm(Base.Fix2(d_hyd, hyd_α(austrip(E))), F))
+IonizationChannel(E, args...) =
+    IonizationChannel(austrip(E), DipoleSourceTerm(Base.Fix2(d_hyd, hyd_α(austrip(E))), args...))
 
 Base.show(io::IO, ic::IonizationChannel) =
     write(io, "IonizationChannel: Iₚ = $(ic.E) Ha = $(27.211ic.E) eV")

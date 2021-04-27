@@ -12,15 +12,14 @@ is described by a [`Diagram`](@ref).
 """
 struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
               Couplings<:AbstractVector{<:AbstractMatrix{<:AbstractCoupling}},
-              Field<:ElectricFields.AbstractField,
-              Times<:AbstractVector,
+              VectorPotential,
+              Times<:AbstractRange,
               Volkov<:VolkovPhases}
     ionization_channels::IonizationChannels
 
     couplings::Couplings
 
-    F::Field
-    ndt::Int
+    𝐀::VectorPotential
     t::Times
     dt::T
 
@@ -32,27 +31,44 @@ end
 
 Set up a [`System`](@ref) consisting of multiple
 [`IonizationChannel`](@ref)s with possible `couplings` between them,
-driven by an external field `F`, sampled at `ndt` times per cycle.
+driven by an external field `F`, sampled at a frequency of `fs`.
 """
 function System(ionization_channels::AbstractVector{<:IonizationChannel},
                 couplings::AbstractVector,
-                F::ElectricFields.AbstractField, ndt)
-    t = timeaxis(F, ndt)
-    volkov = VolkovPhases(F, ndt)
+                F::ElectricFields.AbstractField, fs::Number)
+    t = timeaxis(F, fs)
+    volkov = VolkovPhases(F, t)
 
-    System(ionization_channels, couplings, F, ndt, t, step(t), volkov)
+    𝐀 = vector_potential(F, t)
+    System(ionization_channels, couplings, 𝐀, t, step(t), volkov)
 end
 
-System(ionization_channels::AbstractVector{<:IonizationChannel},
-       F::ElectricFields.AbstractField, ndt::Integer;
+@doc raw"""
+    System(ionization_channels, couplings, Fv, Av, t)
+
+Set up a [`System`](@ref) consisting of multiple
+[`IonizationChannel`](@ref)s with possible `couplings` between them,
+driven by an external field `Fv` with corresponding vector potential
+`Av`, both resolved on the times given by `t`; it is up to the user to
+ensure that ``\vec{F} = -\partial_t\vec{A}`` holds.
+"""
+function System(ionization_channels::AbstractVector{<:IonizationChannel},
+                couplings::AbstractVector,
+                Fv::AbstractVector, Av::AbstractVector, t::AbstractRange)
+    volkov = VolkovPhases(Av, t)
+
+    System(ionization_channels, couplings, Av, t, step(t), volkov)
+end
+
+System(ionization_channels::AbstractVector{<:IonizationChannel}, args...;
        couplings=Matrix{AbstractCoupling}[], kwargs...) =
-           System(ionization_channels, couplings, F, ndt)
+           System(ionization_channels, couplings, args...)
 
 System(ionization_channel::IonizationChannel, args...; kwargs...) =
     System([ionization_channel], args...; kwargs...)
 
-System(Iₚ::Number, F, args...; kwargs...) =
-    System(IonizationChannel(Iₚ, F), F, args...; kwargs...)
+System(Iₚ::Number, args...; kwargs...) =
+    System(IonizationChannel(Iₚ, args...), args...; kwargs...)
 
 function Base.show(io::IO, system::System)
     n = length(system.ionization_channels)
@@ -64,8 +80,6 @@ function Base.show(io::IO, mime::MIME"text/plain", system::System)
     for (i,c) in enumerate(system.ionization_channels)
         println(io, " ", i, ". ", c)
     end
-    println(io)
-    show(io, mime, system.F)
 end
 
 canonical_momentum_conservation(system::System, which::Integer) =
