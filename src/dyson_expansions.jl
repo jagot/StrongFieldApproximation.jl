@@ -469,8 +469,10 @@ function photoelectron_spectrum(k::AbstractArray{T},
 
     cT = complex(eltype(T))
     c = similar(k, cT)
+    p = Progress(length(k))
     threaded_range_loop(eachindex(k)) do i
         c[i] = integrate_diagram(cT, system, diagram, iref, k[i]; kwargs...)
+        ProgressMeter.next!(p)
     end
     c
 end
