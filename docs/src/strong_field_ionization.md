@@ -11,7 +11,15 @@ with some sprinkles of ADK:
   Ionization of Complex Atoms and of Atomic Ions in Alternating
   Electromagnetic Field. Soviet Physics—Journal of Experimental and
   Theoretical Physics, [64(6),
-  1191–1194](http://www.jetp.ac.ru/cgi-bin/e/index/e/64/6/p1191?a=list).
+  1191–1194](http://www.jetp.ac.ru/cgi-bin/e/index/e/64/6/p1191?a=list)
+
+and
+
+- Ilkov, F. A., Decker, J. E., & Chin, S. L. (1992). Ionization of
+  atoms in the tunnelling regime with experimental evidence using hg
+  atoms. Journal of Physics B: Atomic, Molecular and Optical Physics,
+  25(19), 4005–4020. http://dx.doi.org/10.1088/0953-4075/25/19/011
+
 
 ```@docs
 StrongFieldApproximation.IonizationRates.PPT
