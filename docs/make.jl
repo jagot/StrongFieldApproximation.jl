@@ -57,4 +57,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/jagot/StrongFieldApproximation.jl",
+    push_preview = true,
 )
