@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Strong-field ionization · StrongFieldApproximation.jl</title><link rel="canonical" href="https://www.tipota.org/StrongFieldApproximation.jl/strong_field_ionization/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">StrongFieldApproximation.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Strong-field ionization</a></li><li><a class="tocitem" href="../reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Strong-field ionization</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Strong-field ionization</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/master/docs/src/strong_field_ionization.md#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><p>This implements the strong-field ionization formula given by PPT, i.e.</p><ul><li>Perelomov, A., Popov, V., &amp; Terent&#39;ev, M. (1966). Ionization of Atoms in an Alternating Electric Field. Soviet Physics—Journal of Experimental and Theoretical Physics, <a href="http://www.jetp.ac.ru/cgi-bin/e/index/e/23/5/p924?a=list">23(5), 924–934</a>,</li></ul><p>with some sprinkles of ADK:</p><ul><li>Ammosov, M. V., Delone, N. B., &amp; Krainov, V. P. (1986). Tunnel Ionization of Complex Atoms and of Atomic Ions in Alternating Electromagnetic Field. Soviet Physics—Journal of Experimental and Theoretical Physics, <a href="http://www.jetp.ac.ru/cgi-bin/e/index/e/64/6/p1191?a=list">64(6), 1191–1194</a></li></ul><p>and</p><ul><li>Ilkov, F. A., Decker, J. E., &amp; Chin, S. L. (1992). Ionization of atoms in the tunnelling regime with experimental evidence using hg atoms. Journal of Physics B: Atomic, Molecular and Optical Physics, 25(19), 4005–4020. http://dx.doi.org/10.1088/0953-4075/25/19/011</li></ul><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.PPT" href="#StrongFieldApproximation.IonizationRates.PPT"><code>StrongFieldApproximation.IonizationRates.PPT</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia">PPT(Iₚ, I, ω, ℓ, m[, Z=1])</code></pre><p>Compute the strong-field photoionization rate from an initial state with ionization potential <code>Iₚ</code>, angular quantum numbers <code>ℓ</code> &amp; <code>m</code>, and a binding potential of charge <code>Z</code>, when subjected to monochromatic light of intensity <code>I</code> and angular frequency <code>ω</code>, using the PPT formalism (slightly generalized to effective principal quantum numbers <span>$n^*$</span>):</p><p class="math-container">\[\begin{equation}
+\tag{PPT54,ADK1}
+w_{\ell m}(F, \omega) =
+I_p
+\abs{C_{n^*\ell^*}}^2
+\sqrt{\frac{3}{2\pi}}
+f(\ell, m)
+\tilde{E}^{-(2n^* - \abs{m} - 3/2)}
+(1+\gamma^2)^{-n^* + \abs{m}/2 + 3/4}
+A_m(\omega,\gamma)
+\exp\left[
+-\frac{g(\gamma)}{3\tilde{E}}
+\right],
+\end{equation}\]</p><p>where <span>$\gamma$</span> is the Keldysh parameter, and <span>$n^*$</span> the <a href="#StrongFieldApproximation.IonizationRates.effective_n-Tuple{Any, Any}"><code>effective_n</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L202-L229">source</a></section></article><pre><code class="language-julia-repl">julia&gt; using StrongFieldApproximation, ElectricFields, Unitful, UnitfulAtomic
+
+julia&gt; I = 10 .^ range(10, stop=15, length=100) * u&quot;W/cm^2&quot;;
+
+julia&gt; Iau = ElectricFields.Iaustrip.(I);
+
+julia&gt; λ = [400u&quot;nm&quot;, 800u&quot;nm&quot;, 2000u&quot;nm&quot;]
+3-element Vector{Quantity{Int64, 𝐋, Unitful.FreeUnits{(nm,), 𝐋, nothing}}}:
+  400 nm
+  800 nm
+ 2000 nm
+
+julia&gt; ω = austrip.(2π*1u&quot;c&quot; ./ λ)
+3-element Vector{Float64}:
+ 0.11390838132237764
+ 0.05695419066118882
+ 0.022781676264475526
+
+julia&gt; Iₚ = 0.5 # Hydrogen
+0.5
+
+julia&gt; rates = StrongFieldApproximation.IonizationRates.PPT.(Iₚ, Iau, ω&#39;, 0, 0);</code></pre><p><img src="../figures/ppt_example.svg" alt="PPT example"/></p><h1 id="Internals-reference"><a class="docs-heading-anchor" href="#Internals-reference">Internals reference</a><a id="Internals-reference-1"></a><a class="docs-heading-anchor-permalink" href="#Internals-reference" title="Permalink"></a></h1><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.A-NTuple{4, Any}" href="#StrongFieldApproximation.IonizationRates.A-NTuple{4, Any}"><code>StrongFieldApproximation.IonizationRates.A</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">A(m, Iₚ, I, ω[; tol = √(eps()), maxterms=typemax(Int)])</code></pre><p class="math-container">\[\begin{equation}
+\tag{PPT55}
+A_m(\omega,\gamma) =
+\frac{4}{\sqrt{3\pi}}
+\frac{1}{\abs{m}!}
+\frac{\gamma^2}{1+\gamma^2}
+\sum_{n\geq\nu}^\infty
+\exp[-\alpha(n-\nu)]
+w_m[\sqrt{\beta(n-\nu)}],
+\end{equation}\]</p><p>where <span>$\nu$</span> is computed using <a href="#StrongFieldApproximation.IonizationRates.ν-Tuple{Any, Any, Any}"><code>ν</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L166-L182">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.C2-Tuple{Any, Any}" href="#StrongFieldApproximation.IonizationRates.C2-Tuple{Any, Any}"><code>StrongFieldApproximation.IonizationRates.C2</code></a> — <span class="docstring-category">Method</span></header><section><div><p class="math-container">\[\begin{equation}
+\tag{ADK19}
+\abs{C_{n^*\ell^*}}^2 =
+\frac{2^{2n^*}}{n^*\Gamma(n^*+\ell^*+1)\Gamma(n^*-\ell^*)}
+\end{equation}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L9-L17">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.Etilde-Tuple{Any, Any}" href="#StrongFieldApproximation.IonizationRates.Etilde-Tuple{Any, Any}"><code>StrongFieldApproximation.IonizationRates.Etilde</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">Etilde(E0, Iₚ)</code></pre><p class="math-container">\[\tilde{E} = \frac{E_0}{2(2I_p)^{3/2}} \equiv
+\frac{\sqrt{I}}{2(2I_p)^{3/2}}.\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L20-L26">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.effective_n-Tuple{Any, Any}" href="#StrongFieldApproximation.IonizationRates.effective_n-Tuple{Any, Any}"><code>StrongFieldApproximation.IonizationRates.effective_n</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">effective_n(Iₚ, Z)</code></pre><p>Effective principal quantum number for ionization potential <code>Iₚ</code> and residual nuclear charge <code>Z</code>.</p><p class="math-container">\[\begin{equation}
+\tag{ADK2}
+n^* = \frac{Z}{\sqrt{2I_p}}
+\end{equation}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L52-L64">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.f-Tuple{Integer, Integer}" href="#StrongFieldApproximation.IonizationRates.f-Tuple{Integer, Integer}"><code>StrongFieldApproximation.IonizationRates.f</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">f(ℓ, m)</code></pre><p>Common prefactor appearing in e.g Eqs. (PPT54,59), (ADK12)</p><p class="math-container">\[f(\ell, m) =
+\frac{(2\ell+1)(\ell+\abs{m})!}
+{2^{\abs{m}}(\abs{m})!(\ell-\abs{m})!}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L29-L39">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.g-Tuple{Any}" href="#StrongFieldApproximation.IonizationRates.g-Tuple{Any}"><code>StrongFieldApproximation.IonizationRates.g</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">g(γ)</code></pre><p class="math-container">\[\begin{equation}
+\tag{PPT33}
+g(\gamma) =
+\frac{3}{2\gamma}
+\left[
+\left(
+1+\frac{1}{2\gamma^2}
+\right)
+\arcsinh\gamma-
+\frac{\sqrt{1+\gamma^2}}{2\gamma}
+\right] \equiv
+\frac{3}{2\gamma}
+\left[
+\left(
+1+\frac{1}{2\gamma^2}
+\right)
+\arcsinh\gamma-
+\frac{1}{\beta(\gamma)}
+\right]
+\end{equation}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L103-L128">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.w-Tuple{Any, Any}" href="#StrongFieldApproximation.IonizationRates.w-Tuple{Any, Any}"><code>StrongFieldApproximation.IonizationRates.w</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">w(m,x)</code></pre><p class="math-container">\[\begin{equation}
+\tag{PPT56}
+w_m(x) =
+\frac{x^{2\abs{m}+1}}{2}
+\int_0^1\diff{t}
+\frac{\exp(-x^2t)t^{\abs{m}}}{\sqrt{1-t}}
+\end{equation}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L148-L160">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.α-Tuple{Any}" href="#StrongFieldApproximation.IonizationRates.α-Tuple{Any}"><code>StrongFieldApproximation.IonizationRates.α</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">α(γ)</code></pre><p class="math-container">\[\begin{equation}
+\tag{PPT34}
+\alpha(\gamma) =
+2\left(
+\arcsinh\gamma -
+\frac{\gamma}{\sqrt{1+\gamma^2}}
+\right) \equiv
+2\arcsinh\gamma -
+\beta(\gamma)
+\end{equation}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L85-L100">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.β-Tuple{Any}" href="#StrongFieldApproximation.IonizationRates.β-Tuple{Any}"><code>StrongFieldApproximation.IonizationRates.β</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">β(γ)</code></pre><p class="math-container">\[\begin{equation}
+\tag{PPT56ff}
+\beta(\gamma) =
+\frac{2\gamma}{\sqrt{1+\gamma^2}}
+\end{equation}\]</p><p>Defined just below Eq. (PPT56).</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L70-L82">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="StrongFieldApproximation.IonizationRates.ν-Tuple{Any, Any, Any}" href="#StrongFieldApproximation.IonizationRates.ν-Tuple{Any, Any, Any}"><code>StrongFieldApproximation.IonizationRates.ν</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">ν(Iₚ, I, ω)</code></pre><p>Number of photons of energy <span>$\omega$</span> needed to reach above the ionization potential <span>$I_p$</span> in the presence of a strong dressing field of intensity <span>$I$</span>.</p><p class="math-container">\[\begin{equation}
+\tag{PPT26}
+\nu = \frac{I_p}{\omega}
+\left(1+\frac{1}{2\gamma^2}\right)
+\end{equation}\]</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/jagot/StrongFieldApproximation.jl/blob/a92dfad0a9fecfc56fe59e5cc531ee98f96dbf6f/src/ionization_rates.jl#L131-L145">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 3 April 2023 10:13">Monday 3 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
