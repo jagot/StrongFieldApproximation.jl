@@ -208,7 +208,8 @@ macro echo(expr)
 end
 
 @info "Documentation plots"
-mkpath("docs/src/figures")
+fig_dir = joinpath(@__DIR__, "src", "figures")
+mkpath(fig_dir)
 @echo hhg_example()
 @echo streaking_example()
 @echo ppt_example()
