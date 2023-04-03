@@ -1,13 +1,19 @@
 [deps]
+CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 ElectricFields = "2f84ce32-9bb1-11e8-0d9f-3dce90a4beca"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+PythonPlot = "274fc56d-3b97-40fa-a1cd-1b4a50311bf9"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAtomic = "a7773ee8-282e-5fa2-be4e-bd808c38a91a"
 
 [compat]
+CondaPkg = "0.2"
 Documenter = "0.26"
 ElectricFields = "0.1"
 FFTW = "1.4.0"
+PythonCall = "0.9"
+PythonPlot = "1"
 Unitful = "1.7"
 UnitfulAtomic = "1.0"

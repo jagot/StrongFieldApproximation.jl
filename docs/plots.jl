@@ -4,7 +4,7 @@ using Unitful
 using UnitfulAtomic
 using FFTW
 
-using PyPlot
+using PythonPlot
 using Jagot.plotting
 plot_style("ggplot")
 
@@ -16,7 +16,7 @@ function savedocfig(name,dir="figures")
     savefig(filename,
             transparent=false,
             facecolor=fig.get_facecolor())
-    # close(fig)
+    PythonPlot.close("all")
     if isfile(filename)
         println("Saved $(name) to $(filename)")
     else
@@ -71,6 +71,9 @@ function hhg_example()
 
     # d2 will be a vector of 3d vectors
     d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
+    d2x = [e[1] for e in d2]
+    d2y = [e[2] for e in d2]
+    d2z = [e[3] for e in d2]
 
     t = timeaxis(F, ndt)
     tplot = 24.2e-3t
@@ -92,7 +95,9 @@ function hhg_example()
         end
         csubplot(312,nox=true) do
             plot(tplot, d)
-            plot(tplot, d2, "--")
+            plot(tplot, d2x, "--")
+            plot(tplot, d2y, "--")
+            plot(tplot, d2z, "--")
             legend(["1d", "3d x", "3d y", "3d z"])
             ylabel(L"\langle\mathbf{r}\rangle(t)")
         end
