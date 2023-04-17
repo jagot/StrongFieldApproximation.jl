@@ -4,12 +4,14 @@ authors = ["Stefanos Carlström <stefanos.carlstrom@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 ElectricFields = "2f84ce32-9bb1-11e8-0d9f-3dce90a4beca"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"

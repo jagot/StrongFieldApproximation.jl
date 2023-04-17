@@ -6,8 +6,11 @@ using UnitfulAtomic
 using FastGaussQuadrature
 
 using LinearAlgebra
+using SparseArrays
 using StaticArrays
 using FillArrays
+
+import DataStructures: Queue, enqueue!, dequeue!
 
 using ProgressMeter
 using TimerOutputs
@@ -15,11 +18,14 @@ using TimerOutputs
 include("threading.jl")
 include("telescope_iterators.jl")
 
+include("find_blocks.jl")
+
 include("atom_models.jl")
 include("momentum_grid.jl")
 
 include("units.jl")
 include("field.jl")
+include("ion_propagators.jl")
 include("volkov.jl")
 include("windows.jl")
 

@@ -1,18 +1,26 @@
 # * Integrate diagrams
 
-function ionization(system::System, diagram::Diagram, 𝐩, 𝐀, i)
+function ionization(system::System{T}, diagram::Diagram, 𝐩, 𝐀, i) where T
     α,which = diagram.path[end]
     @assert which == 0
-    source_term(system.ionization_channels[α],
-                i,
-                kinematic_momentum(𝐩, 𝐀[i]))
+    s = zero(complex(T))
+    p = kinematic_momentum(𝐩, 𝐀[i])
+    for (j,q) in non_zero_ion_mapping(system.ions, α, i)
+        s += q*source_term(system.ionization_channels[j], i, p)
+    end
+    s
 end
 
 function recombination(system::System, diagram::Diagram, 𝐩, 𝐀, i)
     α,which = first(diagram)
     if which == 0 && length(diagram) > 1
-        d = system.ionization_channels[α].st.d
-        conj(d(kinematic_momentum(𝐩, 𝐀[i])))
+        s = zero(complex(T))
+        p = kinematic_momentum(𝐩, 𝐀[i])
+        for (j,q) in non_zero_ion_mapping(system.ions, α, i)
+            d = system.ionization_channels[j].st.d
+            s += q*d(p)
+        end
+        conj(s)
     else
         true
     end
@@ -28,7 +36,6 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
 
         verbosity > 1 && @info "Integrating diagram up to" iref system diagram ions unique_momenta momenta indeterminate_momenta order weight 𝐤
 
-        Eᵢₒₙₛ = [system.ionization_channels[ion].E for ion in ions]
         𝐩s = complex(zeros(momentum_type(system, 𝐤), length(unique_momenta)))
         prefactors = ones(complex(eltype(system.t)), length(unique_momenta))
         if !isnothing(𝐤)
@@ -63,16 +70,14 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
             verbosity > 10 && @show 𝐩s prefactors
 
             @timeit to "Evaluate propagators" begin
-                Sᵢₒₙ = zero(ctT)
+                aₚᵣₒₚ_ᵢₒₙ = one(ctT)
                 Sₑₗ = zero(ctT)
                 for j = 1:order
                     a,b = is[j], is[j+1]
-                    τ = system.t[a] - system.t[b]
-                    Sᵢₒₙ += Eᵢₒₙₛ[j]*τ
+                    aₚᵣₒₚ_ᵢₒₙ *= ion_propagation(system.ions, ions[j], a, b)
                     Sₑₗ += volkov_phase(𝐩s[j], system.volkov, a, b)
                 end
-                S = Sᵢₒₙ + Sₑₗ
-                aₚᵣₒₚ = prod(prefactors)*exp(-im*S)
+                aₚᵣₒₚ = prod(prefactors)*exp(-im*Sₑₗ)*aₚᵣₒₚ_ᵢₒₙ
             end
 
             verbosity > 10 && @show is prefactors
@@ -88,13 +93,14 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
                     α = ions[j-1]
                     β = ions[j]
                     verbosity > 20 && @show j, ion, which α,β
-                    interaction = system.couplings[which][α,β]
 
                     𝐤ᵢ = 𝐩s[momenta[j-1]]
                     𝐩ᵢ = 𝐩s[momenta[j]]
                     𝐀ᵢ = 𝐀[is[j]]
 
-                    ∂a *= @timeit to "Interaction" interaction(kinematic_momentum(𝐤ᵢ, 𝐀ᵢ), kinematic_momentum(𝐩ᵢ, 𝐀ᵢ), is[j+1])
+                    ∂a *= @timeit to "Interaction" interaction(system.ions, system.couplings[which],
+                                                               α, kinematic_momentum(𝐤ᵢ, 𝐀ᵢ),
+                                                               β, kinematic_momentum(𝐩ᵢ, 𝐀ᵢ), is[j+1])
                 end
             end
 

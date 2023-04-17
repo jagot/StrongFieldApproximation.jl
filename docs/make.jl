@@ -32,6 +32,7 @@ makedocs(;
                     :Hamiltonian => "\\operator{H}",
                     :hamiltonian => "\\operator{h}",
                     :Lagrangian => "\\operator{L}",
+                    :propU => "\\mathcal{U}",
                     :fock => "\\operator{f}",
                     :lagrange => ["\\epsilon_{#1}", 1],
                     :vary => ["\\delta_{#1}", 1],

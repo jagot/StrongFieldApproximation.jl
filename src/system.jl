@@ -15,6 +15,7 @@ struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
               Couplings<:AbstractVector{<:AbstractMatrix{<:AbstractCoupling}},
               VectorPotential,
               Times<:AbstractRange,
+              Ions<:IonPropagator,
               Volkov<:VolkovPhases}
     ionization_channels::IonizationChannels
     𝐫ᵢₒₙ::IonDipoleCouplings
@@ -25,11 +26,18 @@ struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
     t::Times
     dt::T
 
+    ions::Ions
     volkov::Volkov
 end
 
 IonDipoleCouplingsType = Union{AbstractMatrix{<:Number},UniformScaling,SVector{3},Nothing}
 NoCouplings = Matrix{AbstractCoupling}[]
+
+function System(ionization_channels, 𝐫ᵢₒₙ, couplings, 𝐅, 𝐀, t, volkov::VolkovPhases;
+                Ions::Type{<:IonPropagator}=LaserDressedIons, kwargs...)
+    ions = Ions(ionization_channels, 𝐫ᵢₒₙ, 𝐅, t)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, 𝐀, t, step(t), ions, volkov)
+end
 
 """
     System(ionization_channels, 𝐫ᵢₒₙ, couplings, F, ndt)
@@ -42,12 +50,12 @@ sampled at a frequency of `fs`.
 function System(ionization_channels::AbstractVector{<:IonizationChannel},
                 𝐫ᵢₒₙ::IonDipoleCouplingsType,
                 couplings::AbstractVector,
-                F::ElectricFields.AbstractField, fs::Number)
+                F::ElectricFields.AbstractField, fs::Number; kwargs...)
     t = timeaxis(F, fs)
     volkov = VolkovPhases(F, t)
 
     𝐀 = vector_potential.(F, t)
-    System(ionization_channels, 𝐫ᵢₒₙ, couplings, 𝐀, t, step(t), volkov)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, F, 𝐀, t, volkov; kwargs...)
 end
 
 @doc raw"""
@@ -62,19 +70,20 @@ given by `t`; it is up to the user to ensure that ``\vec{F} =
 """
 function System(ionization_channels::AbstractVector{<:IonizationChannel},
                 𝐫ᵢₒₙ::IonDipoleCouplingsType, couplings::AbstractVector,
-                Fv::AbstractVector, Av::AbstractVector, t::AbstractRange)
+                Fv::AbstractVector, Av::AbstractVector, t::AbstractRange;
+                kwargs...)
     volkov = VolkovPhases(Av, t)
 
-    System(ionization_channels, 𝐫ᵢₒₙ, couplings, Av, t, step(t), volkov)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, Fv, Av, t, volkov; kwargs...)
 end
 
 System(ionization_channels::AbstractVector{<:IonizationChannel},
-       F::ElectricFields.AbstractField, fs::Number) =
+       F::ElectricFields.AbstractField, fs::Number; kwargs...) =
            System(ionization_channels, nothing, NoCouplings,
-                  F, fs)
+                  F, fs; kwargs...)
 
-System(Iₚ::Number, args...) =
-    System([IonizationChannel(Iₚ, args...)], args...)
+System(Iₚ::Number, args...; kwargs...) =
+    System([IonizationChannel(Iₚ, args...)], args...; kwargs...)
 
 num_channels(system::System) = length(system.ionization_channels)
 
