@@ -124,6 +124,7 @@ MathJax.Hub.Config({
         "\\langle#1|#2|#3\\rangle",
         3
       ],
+      "propU": "\\mathcal{U}",
       "saddle": [
         "#1^{(\\textrm{st})}",
         1
