@@ -394,7 +394,8 @@ set_momentum!(𝐩s::AbstractVector{<:SVector{3}}, 𝐩ₛₜ::SVector{3}, i) =
 set_momentum!(𝐩s::AbstractVector{<:SVector{3}}, 𝐩ₛₜ::T, i) where {T<:Number} =
     setindex!(𝐩s, SVector{3,T}(zero(T), zero(T), 𝐩ₛₜ), i)
 
-function evaluate_momenta!(𝐩s, prefactors, system, unique_momenta, indeterminate_momenta, i; ϵ=1e-2*√(eps(eltype(system.t))))
+function evaluate_momenta!(𝐩s, prefactors, system, unique_momenta, indeterminate_momenta, i;
+                           ϵ=1e-2*√(eps(eltype(system.t))))
     for idm in indeterminate_momenta
         uidm = unique_momenta[idm]
         a,b = i[uidm[1]],i[uidm[2]]

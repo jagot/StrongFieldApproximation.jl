@@ -22,8 +22,8 @@ function threaded_range_loop(fun::Function, n::Integer)
     end
 end
 
-threaded_range_loop(fun::Function, v::AbstractVector) =
+threaded_range_loop(fun::Function, v::AbstractArray) =
     threaded_range_loop(i -> fun(v[i]), length(v))
 
-threaded_enumerate_range_loop(fun::Function, v::AbstractVector) =
+threaded_enumerate_range_loop(fun::Function, v::AbstractArray) =
     threaded_range_loop(i -> fun(i,v[i]), length(v))

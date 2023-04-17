@@ -1,11 +1,15 @@
-function momentum_grid(kmin, kmax, nk, nθ; spacing=:momentum)
-    kmag = if spacing == :momentum
+function momentum_grid(kmin, kmax, nk; spacing=:momentum)
+    if spacing == :momentum
         range(kmin, stop=kmax, length=nk)
     elseif spacing == :energy
         .√(2range(kmin^2/2, stop=kmax^2/2, length=nk))
     else
         throw(ArgumentError("Unknown spacing $(spacing)"))
     end
+end
+
+function momentum_grid(kmin, kmax, nk, nθ, nϕ=1; kwargs...)
+    kmag = momentum_grid(kmin, kmax, nk; kwargs...)
     nθ == 1 && return (kmag,kmag,nothing)
 
     x = range(0, stop=1, length=nθ)
