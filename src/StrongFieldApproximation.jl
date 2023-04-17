@@ -22,6 +22,10 @@ include("field.jl")
 include("volkov.jl")
 
 include("channels.jl")
+include("system.jl")
+include("diagrams.jl")
+include("momenta.jl")
+
 include("dyson_expansions.jl")
 
 include("ionization_rates.jl")
