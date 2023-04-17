@@ -7,6 +7,7 @@ using FastGaussQuadrature
 
 using LinearAlgebra
 using StaticArrays
+using FillArrays
 
 using ProgressMeter
 using TimerOutputs
@@ -20,6 +21,7 @@ include("momentum_grid.jl")
 include("units.jl")
 include("field.jl")
 include("volkov.jl")
+include("windows.jl")
 
 include("channels.jl")
 include("system.jl")

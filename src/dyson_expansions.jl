@@ -18,7 +18,8 @@ function recombination(system::System, diagram::Diagram, 𝐩, 𝐀, i)
     end
 end
 
-function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 𝐤=nothing; memory=typemax(Int), imin=1,
+function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 𝐤=nothing;
+                           window=flat_window(), imin=1,
                            to=TimerOutput(), verbosity=1) where Amp
     ions, unique_momenta, momenta, indeterminate_momenta, order = @timeit to "Analyze diagram" analyze_diagram(system, diagram)
 
@@ -39,10 +40,18 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
         ctT = complex(eltype(system.t))
 
         is = vcat(iref, zeros(Int, order))
+
+        memory = length(window)
+        if memory < iref
+            window = vcat(window, zeros(eltype(window), iref))
+        end
     end
 
     @timeit to "Time loop" begin
         for i in TelescopeIterator(max(1,imin):iref-1, order, memory)
+            windw = @timeit "Window" prod(window[(i[1] + 1) .- i])
+            iszero(windw) && continue
+
             is[2:end] .= i
             # is = vcat(iref, i)
             # is = (iref,i...)
@@ -89,7 +98,9 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
                 end
             end
 
-            amplitude += ∂a
+            @timeit to "Accumulate amplitude" begin
+                amplitude += ∂a * windw
+            end
         end
     end
 
@@ -122,7 +133,7 @@ function photoelectron_spectrum(k::AbstractArray{T},
 end
 
 function photoelectron_spectrum(k, args...; kwargs...)
-    system = System(args...; kwargs...)
+    system = System(args...)
     photoelectron_spectrum(k, system, Diagram(system); kwargs...)
 end
 
@@ -140,10 +151,11 @@ function induced_dipole(system::System, diagram::Diagram; verbosity = 1, kwargs.
     DT = eltype(system.𝐀)
     𝐝 = zeros(DT, length(t))
 
-    memory = get(kwargs, :memory, typemax(Int))
+    memory = length(get(kwargs, :window, flat_window()))
 
     @showprogress for (i,t) in enumerate(t)
-        𝐝̃ = integrate_diagram(DT, system, diagram, i; imin=i-memory, verbosity=verbosity-1, kwargs...)
+        𝐝̃ = integrate_diagram(DT, system, diagram, i; imin=i-memory,
+                             verbosity=verbosity-1, kwargs...)
         𝐝[i] = 2real(𝐝̃)
     end
 
@@ -151,7 +163,7 @@ function induced_dipole(system::System, diagram::Diagram; verbosity = 1, kwargs.
 end
 
 function induced_dipole(args...; kwargs...)
-    system = System(args...; kwargs...)
+    system = System(args...)
     diagram = Diagram([(1,0),(1,0)], system)
     induced_dipole(system, diagram; kwargs...)
 end

@@ -73,8 +73,8 @@ System(ionization_channels::AbstractVector{<:IonizationChannel},
            System(ionization_channels, nothing, NoCouplings,
                   F, fs)
 
-System(Iₚ::Number, args...; kwargs...) =
-    System([IonizationChannel(Iₚ, args...)], args...; kwargs...)
+System(Iₚ::Number, args...) =
+    System([IonizationChannel(Iₚ, args...)], args...)
 
 num_channels(system::System) = length(system.ionization_channels)
 
