@@ -14,8 +14,8 @@ end
 function recombination(system::System{T}, diagram::Diagram, 𝐩, 𝐀, i) where T
     α,which = first(diagram)
     if which == 0 && length(diagram) > 1
-        s = zero(complex(T))
         p = kinematic_momentum(𝐩, 𝐀[i])
+        s = complex(zero(first(system.ionization_channels).st.d(p)))
         for (j,q) in non_zero_ion_mapping(system.ions, α, i)
             d = system.ionization_channels[j].st.d
             s += q*d(p)
