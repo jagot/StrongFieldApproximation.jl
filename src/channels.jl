@@ -21,6 +21,17 @@ struct DipoleSourceTerm{Dipole<:Function,Field<:Union{ElectricFields.AbstractFie
         new{Dipole,FieldAmplitude}(d, Fv)
 end
 
+Base.show(io::IO, d::DipoleSourceTerm) =
+    write(io, "DipoleSourceTerm")
+
+function Base.show(io::IO, mime::MIME"text/plain", d::DipoleSourceTerm)
+    show(io, d)
+    print(io, "\nDipole: ")
+    show(io, mime, d.d)
+    print(io, "\nField: ")
+    show(io, d.F)
+end
+
 dipole(F::Number, d::Number) = F*d
 dipole(F::SVector{3}, d::SVector{3}) = dot(F, d)
 dipole(F::Number, d::SVector{3}) = F*d[3]
@@ -54,11 +65,17 @@ IonizationChannel(E, args...) =
 Base.show(io::IO, ic::IonizationChannel) =
     write(io, "IonizationChannel: Iₚ = $(ic.E) Ha = $(27.211ic.E) eV")
 
+function Base.show(io::IO, mime::MIME"text/plain", ic::IonizationChannel)
+    show(io, ic)
+    print(io, "\nSource term: ")
+    show(io, mime, ic.st)
+end
+
 # * Couplings
 
 abstract type AbstractCanonicalMomentumConservation end
-struct CanonicalMomentumConservation <:  AbstractCanonicalMomentumConservation end
-struct NoCanonicalMomentumConservation <:  AbstractCanonicalMomentumConservation end
+struct CanonicalMomentumConservation <: AbstractCanonicalMomentumConservation end
+struct NoCanonicalMomentumConservation <: AbstractCanonicalMomentumConservation end
 
 abstract type AbstractCoupling end
 Base.iszero(::AbstractCoupling) = false
@@ -69,6 +86,8 @@ struct NoCoupling <: AbstractCoupling end
 Base.iszero(::NoCoupling) = true
 Base.zero(::AbstractCoupling) = NoCoupling()
 
+Base.show(io::IO, ::NoCoupling) = write(io, "0")
+
 # ** Dipole couplings
 
 struct DipoleCoupling{DipoleMoment<:Union{Number,SVector{3}},Field<:ElectricFields.AbstractField} <: AbstractCoupling
@@ -78,6 +97,8 @@ end
 
 canonical_momentum_conservation(::DipoleCoupling) = CanonicalMomentumConservation()
 canonical_momentum_conservation(::Type{<:DipoleCoupling}) = CanonicalMomentumConservation()
+
+Base.show(io::IO, ::DipoleCoupling) = write(io, "𝐅⋅𝐫")
 
 # ** Coulomb couplings
 
@@ -90,3 +111,10 @@ struct CoulombCoupling{Coupling} <: AbstractCoupling
 end
 
 (cc::CoulombCoupling)(𝐤, 𝐩, _) = cc.coupling(𝐤, 𝐩)
+
+Base.show(io::IO, ::CoulombCoupling) = write(io, "ĝ")
+
+function Base.show(io::IO, mime::MIME"text/plain", g::CoulombCoupling)
+    write(io, "CoulombCoupling: ")
+    show(io, mime, g.coupling)
+end
