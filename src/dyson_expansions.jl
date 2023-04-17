@@ -11,11 +11,13 @@ the external field, and the interactions possible, the actual process
 is described by a [`Diagram`](@ref).
 """
 struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
+              IonDipoleCouplings,
               Couplings<:AbstractVector{<:AbstractMatrix{<:AbstractCoupling}},
               VectorPotential,
               Times<:AbstractRange,
               Volkov<:VolkovPhases}
     ionization_channels::IonizationChannels
+    𝐫ᵢₒₙ::IonDipoleCouplings
 
     couplings::Couplings
 
@@ -26,59 +28,78 @@ struct System{T,IonizationChannels<:AbstractVector{<:IonizationChannel{T}},
     volkov::Volkov
 end
 
+IonDipoleCouplingsType = Union{AbstractMatrix{<:Number},UniformScaling,SVector{3},Nothing}
+NoCouplings = Matrix{AbstractCoupling}[]
+
 """
-    System(ionization_channels, couplings, F, ndt)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, F, ndt)
 
 Set up a [`System`](@ref) consisting of multiple
-[`IonizationChannel`](@ref)s with possible `couplings` between them,
-driven by an external field `F`, sampled at a frequency of `fs`.
+[`IonizationChannel`](@ref)s with ionic dipole moments `𝐫ᵢₒₙ` and
+possible `couplings` between them, driven by an external field `F`,
+sampled at a frequency of `fs`.
 """
 function System(ionization_channels::AbstractVector{<:IonizationChannel},
+                𝐫ᵢₒₙ::IonDipoleCouplingsType,
                 couplings::AbstractVector,
                 F::ElectricFields.AbstractField, fs::Number)
     t = timeaxis(F, fs)
     volkov = VolkovPhases(F, t)
 
     𝐀 = vector_potential.(F, t)
-    System(ionization_channels, couplings, 𝐀, t, step(t), volkov)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, 𝐀, t, step(t), volkov)
 end
 
 @doc raw"""
-    System(ionization_channels, couplings, Fv, Av, t)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, Fv, Av, t)
 
 Set up a [`System`](@ref) consisting of multiple
-[`IonizationChannel`](@ref)s with possible `couplings` between them,
-driven by an external field `Fv` with corresponding vector potential
-`Av`, both resolved on the times given by `t`; it is up to the user to
-ensure that ``\vec{F} = -\partial_t\vec{A}`` holds.
+[`IonizationChannel`](@ref)s with with ionic dipole moments `𝐫ᵢₒₙ` and
+possible `couplings` between them, driven by an external field `Fv`
+with corresponding vector potential `Av`, both resolved on the times
+given by `t`; it is up to the user to ensure that ``\vec{F} =
+-\partial_t\vec{A}`` holds.
 """
 function System(ionization_channels::AbstractVector{<:IonizationChannel},
-                couplings::AbstractVector,
+                𝐫ᵢₒₙ::IonDipoleCouplingsType, couplings::AbstractVector,
                 Fv::AbstractVector, Av::AbstractVector, t::AbstractRange)
     volkov = VolkovPhases(Av, t)
 
-    System(ionization_channels, couplings, Av, t, step(t), volkov)
+    System(ionization_channels, 𝐫ᵢₒₙ, couplings, Av, t, step(t), volkov)
 end
 
-System(ionization_channels::AbstractVector{<:IonizationChannel}, args...;
-       couplings=Matrix{AbstractCoupling}[], kwargs...) =
-           System(ionization_channels, couplings, args...)
-
-System(ionization_channel::IonizationChannel, args...; kwargs...) =
-    System([ionization_channel], args...; kwargs...)
+System(ionization_channels::AbstractVector{<:IonizationChannel},
+       F::ElectricFields.AbstractField, fs::Number) =
+           System(ionization_channels, nothing, NoCouplings,
+                  F, fs)
 
 System(Iₚ::Number, args...; kwargs...) =
-    System(IonizationChannel(Iₚ, args...), args...; kwargs...)
+    System([IonizationChannel(Iₚ, args...)], args...; kwargs...)
 
-function Base.show(io::IO, system::System)
-    n = length(system.ionization_channels)
-    write(io, "$(n)-channel System")
-end
+num_channels(system::System) = length(system.ionization_channels)
+
+Base.show(io::IO, system::System) =
+    write(io, "$(num_channels(system))-channel SFA System")
 
 function Base.show(io::IO, mime::MIME"text/plain", system::System)
     println(io, system, ":")
     for (i,c) in enumerate(system.ionization_channels)
         println(io, " ", i, ". ", c)
+    end
+    if !isnothing(system.𝐫ᵢₒₙ)
+        nz(A) = count(!iszero, A)
+        nz(A,i) = count(e -> !iszero(e[i]), A)
+        nz(I::UniformScaling) = iszero(I) ? 0 : 1
+        println(io, "Channel dipole couplings:")
+        if system.𝐫ᵢₒₙ isa SVector{3}
+            for (i,d) in enumerate(("x","y","z"))
+                nzd = nz(system.𝐫ᵢₒₙ[i])
+                println(io, "  - $d: $(nzd) non-zero couplings")
+            end
+        else
+            nzz = nz(system.𝐫ᵢₒₙ)
+            println(io, "  - z: $(nzz) non-zero couplings")
+        end
     end
 end
 
@@ -185,6 +206,14 @@ struct Diagram{Couplings}
             which == 0 ||
                 throw(ArgumentError("Non-empty diagrams must have photoionization as the first interaction"))
         end
+        ncoup = length(couplings)
+        vcoup = 0:ncoup
+        invalid_couplings = findall(∉(vcoup), last.(path))
+        if !isempty(invalid_couplings)
+            length(invalid_couplings) == 1 &&
+                throw(ArgumentError("Coupling at vertex $(first(invalid_couplings)) not in valid range $(vcoup)"))
+            throw(ArgumentError("Couplings at vertices $(invalid_couplings) not in valid range $(vcoup)"))
+        end
         for i = 2:length(path)-1
             path[i][2] == 0 &&
                 throw(ArgumentError("Only the first and last interaction in a diagram may have which = 0 (corresponding to ionization/recombination)"))
@@ -209,10 +238,18 @@ diagram corresponding to photoionization into the first ionization of
 channel of `system` will automatically be generated.
 """
 function Diagram(path::AbstractVector, system::System)
+    nc = length(system.ionization_channels)
     if isempty(path)
-        length(system.ionization_channels) > 1 &&
+        nc > 1 &&
             @warn "More than one ionization channel present in system, choosing the first"
         path = [(1,0)]
+    end
+    vc = 1:nc
+    invalid_channels = findall(∉(vc), first.(path))
+    if !isempty(invalid_channels)
+        length(invalid_channels) == 1 &&
+            throw(ArgumentError("Invalid channel at vertex $(first(invalid_channels))"))
+        throw(ArgumentError("Invalid channels at vertices $(invalid_channels)"))
     end
     Diagram(path, [typeof(first(c)) for c in system.couplings])
 end

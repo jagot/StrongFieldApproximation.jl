@@ -36,11 +36,11 @@ dipole(F::Number, d::Number) = F*d
 dipole(F::SVector{3}, d::SVector{3}) = dot(F, d)
 dipole(F::Number, d::SVector{3}) = F*d[3]
 
-source_term(d::DipoleSourceTerm{<:Any,<:ElectricFields.AbstractField}, t, p) =
-    dipole(field_amplitude(d.F, t), d.d(p))
+_field_amplitude(F::ElectricFields.AbstractField, t) =
+    field_amplitude(F, t)
+_field_amplitude(F::AbstractVector, i::Integer) = F[i]
 
-source_term(d::DipoleSourceTerm{<:Any,<:AbstractVector}, i::Integer, p) =
-    dipole(d.F[i], d.d(p))
+source_term(d::DipoleSourceTerm, t, p) = dipole(_field_amplitude(d.F, t), d.d(p))
 
 # * Ionizations channels
 
@@ -54,6 +54,8 @@ Represents an ionization channel with energy `E` above the neutral
 struct IonizationChannel{T,SourceTerm<:AbstractSourceTerm}
     E::T
     st::SourceTerm
+    IonizationChannel(E::T, st::SourceTerm) where {T,SourceTerm} =
+        new{T,SourceTerm}(E, st)
 end
 
 source_term(ic::IonizationChannel, args...) =
@@ -85,6 +87,7 @@ canonical_momentum_conservation(::Type{<:AbstractCoupling}) = NoCanonicalMomentu
 struct NoCoupling <: AbstractCoupling end
 Base.iszero(::NoCoupling) = true
 Base.zero(::AbstractCoupling) = NoCoupling()
+Base.zero(::Type{<:AbstractCoupling}) = NoCoupling()
 
 Base.show(io::IO, ::NoCoupling) = write(io, "0")
 
