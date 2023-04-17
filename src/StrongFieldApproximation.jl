@@ -9,6 +9,7 @@ using LinearAlgebra
 using StaticArrays
 
 using ProgressMeter
+using TimerOutputs
 
 include("threading.jl")
 include("telescope_iterators.jl")
