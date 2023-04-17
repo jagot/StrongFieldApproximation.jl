@@ -11,7 +11,7 @@ function ionization(system::System{T}, diagram::Diagram, 𝐩, 𝐀, i) where T
     s
 end
 
-function recombination(system::System, diagram::Diagram, 𝐩, 𝐀, i)
+function recombination(system::System{T}, diagram::Diagram, 𝐩, 𝐀, i) where T
     α,which = first(diagram)
     if which == 0 && length(diagram) > 1
         s = zero(complex(T))
