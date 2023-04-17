@@ -89,7 +89,9 @@ end
     dc = StrongFieldApproximation.DipoleCoupling(0.1, F)
     couplings=Matrix{StrongFieldApproximation.AbstractCoupling}[reshape([dc],1,1),reshape([cc],1,1)]
 
-    system = StrongFieldApproximation.System(Iₚ, F, ndt, couplings=couplings)
+    ar = (F, ndt)
+    channel = IonizationChannel(Iₚ, ar...)
+    system = StrongFieldApproximation.System(repeat([channel], 10), nothing, couplings, ar...)
 
     for (path, expected_momenta, expected_unique, expected_indeterminate) in [
         ([(1,0)], [1], [(1,2)], []),

@@ -121,3 +121,7 @@ function Base.show(io::IO, mime::MIME"text/plain", g::CoulombCoupling)
     write(io, "CoulombCoupling: ")
     show(io, mime, g.coupling)
 end
+
+# * Exports
+
+export IonizationChannel
