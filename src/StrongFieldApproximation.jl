@@ -35,6 +35,7 @@ include("diagrams.jl")
 include("momenta.jl")
 
 include("dyson_expansions.jl")
+include("multi_channel_sfa.jl")
 
 include("ionization_rates.jl")
 

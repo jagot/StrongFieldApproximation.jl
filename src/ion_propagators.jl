@@ -10,6 +10,24 @@ function interaction(ions::IonPropagator, coupling, α, k, β, p, i)
     s
 end
 
+function apply_interaction!(v, coupling, u, k, p, ti)
+    nc = length(u)
+    v .= false
+    for α = 1:nc
+        for β = 1:nc
+            v[α] += coupling[α,β](k, p, ti)*u[β]
+        end
+    end
+    v
+end
+
+function apply_interaction!(v, ions::IonPropagator, coupling, u, k, p, i)
+    Q = ion_mapping(ions, i)
+    mul!(v, Q, u)
+    apply_interaction!(u, coupling, v, k, p, i)
+    mul!(v, Q, u)
+end
+
 # * Laser-dressed ions
 
 @doc raw"""
@@ -83,7 +101,8 @@ function LaserDressedIons(ics, 𝐫ᵢₒₙ::SparseMatrixCSC, Fv::AbstractArray
         @timeit to "Time loop" begin
             @showprogress for i = 1:nt
                 Hsub .= H₀sub .+ Fv[i] .* zsub
-                ee = eigen!(Hsub)
+                @assert Hsub ≈ Hsub'
+                ee = eigen!(Hermitian(Hsub))
                 for (ij,j) in enumerate(b)
                     E[i,j] = ee.values[ij]
                 end
@@ -117,6 +136,11 @@ LaserDressedIons(ics, 𝐫ᵢₒₙ, F::ElectricFields.AbstractField, t) =
 
 Base.eltype(::LaserDressedIons{T}) where T = T
 
+ion_mapping(ions::LaserDressedIons, i) =
+    view(ions.ion_basis, :, :, i)
+
+ion_mapping(ions::LaserDressedIons, _) = I
+
 ion_mapping(ions::LaserDressedIons, α, i) =
     view(ions.ion_basis, α, :, i)
 
@@ -131,7 +155,7 @@ non_zero_ion_mapping(ions::LaserDressedIons{T,Nothing}, α, _) where T =
     [(α, one(T))]
 
 ion_propagation(ions::LaserDressedIons, j, a, b) =
-    ions.expimE[a,j]*conj(ions.expimE[b,j])
+    ions.expimE[a,j] .* conj(ions.expimE[b,j])
 
 # * Field-free ions
 
@@ -145,6 +169,8 @@ FieldFreeIons(ics, _, _, t) =
 
 Base.eltype(::FieldFreeIons{T}) where T = T
 
+ion_mapping(::FieldFreeIons, _) = I
+
 ion_mapping(::FieldFreeIons{T}, α, _) where T =
     vcat(zeros(T,α-1), one(T), zeros(T, length(ions.E₀)-α))
 
@@ -152,4 +178,4 @@ non_zero_ion_mapping(::FieldFreeIons{T}, α, _) where T =
     [(α, one(T))]
 
 ion_propagation(ions::FieldFreeIons, j, a, b) =
-    exp(-im*(ions.t[a]-ions.t[b])*ions.E₀[j])
+    exp.(-im*(ions.t[a]-ions.t[b])*ions.E₀[j])
