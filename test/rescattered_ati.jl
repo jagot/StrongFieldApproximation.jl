@@ -66,7 +66,7 @@ end
 
     # Elastic scattering off a Yukawa potential
     cc = StrongFieldApproximation.CoulombCoupling((𝐤,𝐩) -> yukawa_fourier(𝐩-𝐤, 1, 0, 1))
-    couplings=[[cc;;]]
+    couplings=[reshape([cc], (1,1))]
 
     ar = (Fv, Av, t)
 
