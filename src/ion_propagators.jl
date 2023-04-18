@@ -139,7 +139,7 @@ Base.eltype(::LaserDressedIons{T}) where T = T
 ion_mapping(ions::LaserDressedIons, i) =
     view(ions.ion_basis, :, :, i)
 
-ion_mapping(ions::LaserDressedIons, _) = I
+ion_mapping(ions::LaserDressedIons{<:Any,Nothing}, _) = I
 
 ion_mapping(ions::LaserDressedIons, α, i) =
     view(ions.ion_basis, α, :, i)
