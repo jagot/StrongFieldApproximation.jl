@@ -118,7 +118,7 @@ function photoelectron_spectrum(k::AbstractArray{T},
                                 system::System, diagram::Diagram;
                                 iref=length(system.t),
                                 verbosity=1, kwargs...) where T
-    verbosity > 0 && @info "Photoelectrum spectrum calculation" system diagram length(k)
+    verbosity == 1 && @info "Photoelectrum spectrum calculation" system diagram length(k)
 
     cT = complex(eltype(T))
     c = similar(k, cT)
@@ -133,7 +133,7 @@ function photoelectron_spectrum(k::AbstractArray{T},
         end
     end
     TimerOutputs.complement!(to)
-    verbosity > 0 && print_timer(to)
+    0 < verbosity < 4 && print_timer(to)
     c
 end
 
