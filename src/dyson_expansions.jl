@@ -94,13 +94,12 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
                     β = ions[j]
                     verbosity > 20 && @show j, ion, which α,β
 
-                    𝐤ᵢ = 𝐩s[momenta[j-1]]
-                    𝐩ᵢ = 𝐩s[momenta[j]]
                     𝐀ᵢ = 𝐀[is[j]]
+                    𝐤ᵢ = kinematic_momentum(𝐩s[momenta[j-1]], 𝐀ᵢ)
+                    𝐩ᵢ = kinematic_momentum(𝐩s[momenta[j]], 𝐀ᵢ)
 
                     ∂a *= @timeit to "Interaction" interaction(system.ions, system.couplings[which],
-                                                               α, kinematic_momentum(𝐤ᵢ, 𝐀ᵢ),
-                                                               β, kinematic_momentum(𝐩ᵢ, 𝐀ᵢ), is[j+1])
+                                                               α, 𝐤ᵢ, β, 𝐩ᵢ, is[j])
                 end
             end
 
