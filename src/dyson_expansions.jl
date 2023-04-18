@@ -56,7 +56,7 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
 
     @timeit to "Time loop" begin
         for i in TelescopeIterator(max(1,imin):iref-1, order, memory)
-            windw = @timeit "Window" prod(window[(i[1] + 1) .- i])
+            windw = @timeit to "Window" prod(window[(i[1] + 1) .- i])
             iszero(windw) && continue
 
             is[2:end] .= i
