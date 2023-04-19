@@ -33,7 +33,7 @@ function Base.show(io::IO, mime::MIME"text/plain", d::DipoleSourceTerm)
 end
 
 dipole(F::Number, d::Number) = F*d
-dipole(F::SVector{3}, d::SVector{3}) = dot(F, d)
+dipole(F::SVector{3}, d::SVector{3}) = F[1]*d[1] + F[2]*d[2] + F[3]*d[3]
 dipole(F::Number, d::SVector{3}) = F*d[3]
 
 _field_amplitude(F::ElectricFields.AbstractField, t) =

@@ -65,21 +65,31 @@ function LaserDressedIons(E::Matrix{T}, Q, t) where T
     LaserDressedIons(expimE, Q)
 end
 
-function LaserDressedIons(ics, 𝐫ᵢₒₙ::SparseMatrixCSC, Fv::AbstractArray, t)
+dme_subset(A::AbstractMatrix, sel) = A[sel,sel]
+dme_subset(A::SVector{3}, sel) =
+    SVector{3}(dme_subset(A[i], sel) for i = 1:3)
+dme_subset(I::UniformScaling, _) = I
+
+incidence_matrix(A::AbstractMatrix) = A .≠ 0
+incidence_matrix(A::SVector{3,<:AbstractMatrix}) =
+    incidence_matrix(A[1]) .|
+    incidence_matrix(A[2]) .|
+    incidence_matrix(A[3])
+
+function LaserDressedIons(ics, 𝐫ᵢₒₙ::Union{SparseMatrixCSC,SVector{3,<:SparseMatrixCSC}}, Fv::AbstractArray, t)
     to = TimerOutput()
 
     @timeit to "Allocations" begin
-        m,n = size(𝐫ᵢₒₙ)
-        @assert m == n == length(ics)
+        m = length(ics)
 
         nt = length(t)
         E₀ = [ic.E for ic in ics]
         H₀ = Diagonal(E₀)
 
-        X = .!iszero.(I + (𝐫ᵢₒₙ .≠ 0))
+        X = incidence_matrix(I + incidence_matrix(𝐫ᵢₒₙ))
         bs = find_blocks(X)
 
-        @info "Diagonalizing $(m)×$(n) ionic Hamiltonian for $(nt) times" bs
+        @info "Diagonalizing $(m)×$(m) ionic Hamiltonian for $(nt) times" bs
 
         T = eltype(E₀)
         E = zeros(T, nt, m)
@@ -97,10 +107,10 @@ function LaserDressedIons(ics, 𝐫ᵢₒₙ::SparseMatrixCSC, Fv::AbstractArray
 
         Hsub = zeros(T, nb, nb)
         H₀sub = Diagonal(E₀[b])
-        zsub = Matrix(𝐫ᵢₒₙ[b,b])
+        dsub = dme_subset(𝐫ᵢₒₙ, b)
         @timeit to "Time loop" begin
             @showprogress for i = 1:nt
-                Hsub .= H₀sub .+ Fv[i] .* zsub
+                Hsub .= H₀sub .+ dipole(Fv[i,:], dsub)
                 @assert Hsub ≈ Hsub'
                 ee = eigen!(Hermitian(Hsub))
                 for (ij,j) in enumerate(b)
