@@ -21,15 +21,26 @@ struct DipoleSourceTerm{Dipole<:Function,Field<:Union{ElectricFields.AbstractFie
         new{Dipole,FieldAmplitude}(d, Fv)
 end
 
+Base.show(io::IO, d::DipoleSourceTerm) =
+    write(io, "DipoleSourceTerm")
+
+function Base.show(io::IO, mime::MIME"text/plain", d::DipoleSourceTerm)
+    show(io, d)
+    print(io, "\nDipole: ")
+    show(io, mime, d.d)
+    print(io, "\nField: ")
+    show(io, d.F)
+end
+
 dipole(F::Number, d::Number) = F*d
-dipole(F::SVector{3}, d::SVector{3}) = dot(F, d)
+dipole(F::SVector{3}, d::SVector{3}) = F[1]*d[1] + F[2]*d[2] + F[3]*d[3]
 dipole(F::Number, d::SVector{3}) = F*d[3]
 
-source_term(d::DipoleSourceTerm{<:Any,<:ElectricFields.AbstractField}, t, p) =
-    dipole(field_amplitude(d.F, t), d.d(p))
+_field_amplitude(F::ElectricFields.AbstractField, t) =
+    field_amplitude(F, t)
+_field_amplitude(F::AbstractVector, i::Integer) = F[i]
 
-source_term(d::DipoleSourceTerm{<:Any,<:AbstractVector}, i::Integer, p) =
-    dipole(d.F[i], d.d(p))
+source_term(d::DipoleSourceTerm, t, p) = dipole(_field_amplitude(d.F, t), d.d(p))
 
 # * Ionizations channels
 
@@ -43,6 +54,8 @@ Represents an ionization channel with energy `E` above the neutral
 struct IonizationChannel{T,SourceTerm<:AbstractSourceTerm}
     E::T
     st::SourceTerm
+    IonizationChannel(E::T, st::SourceTerm) where {T,SourceTerm} =
+        new{T,SourceTerm}(E, st)
 end
 
 source_term(ic::IonizationChannel, args...) =
@@ -54,11 +67,17 @@ IonizationChannel(E, args...) =
 Base.show(io::IO, ic::IonizationChannel) =
     write(io, "IonizationChannel: Iₚ = $(ic.E) Ha = $(27.211ic.E) eV")
 
+function Base.show(io::IO, mime::MIME"text/plain", ic::IonizationChannel)
+    show(io, ic)
+    print(io, "\nSource term: ")
+    show(io, mime, ic.st)
+end
+
 # * Couplings
 
 abstract type AbstractCanonicalMomentumConservation end
-struct CanonicalMomentumConservation <:  AbstractCanonicalMomentumConservation end
-struct NoCanonicalMomentumConservation <:  AbstractCanonicalMomentumConservation end
+struct CanonicalMomentumConservation <: AbstractCanonicalMomentumConservation end
+struct NoCanonicalMomentumConservation <: AbstractCanonicalMomentumConservation end
 
 abstract type AbstractCoupling end
 Base.iszero(::AbstractCoupling) = false
@@ -68,6 +87,9 @@ canonical_momentum_conservation(::Type{<:AbstractCoupling}) = NoCanonicalMomentu
 struct NoCoupling <: AbstractCoupling end
 Base.iszero(::NoCoupling) = true
 Base.zero(::AbstractCoupling) = NoCoupling()
+Base.zero(::Type{<:AbstractCoupling}) = NoCoupling()
+
+Base.show(io::IO, ::NoCoupling) = write(io, "0")
 
 # ** Dipole couplings
 
@@ -78,6 +100,8 @@ end
 
 canonical_momentum_conservation(::DipoleCoupling) = CanonicalMomentumConservation()
 canonical_momentum_conservation(::Type{<:DipoleCoupling}) = CanonicalMomentumConservation()
+
+Base.show(io::IO, ::DipoleCoupling) = write(io, "𝐅⋅𝐫")
 
 # ** Coulomb couplings
 
@@ -90,3 +114,14 @@ struct CoulombCoupling{Coupling} <: AbstractCoupling
 end
 
 (cc::CoulombCoupling)(𝐤, 𝐩, _) = cc.coupling(𝐤, 𝐩)
+
+Base.show(io::IO, ::CoulombCoupling) = write(io, "ĝ")
+
+function Base.show(io::IO, mime::MIME"text/plain", g::CoulombCoupling)
+    write(io, "CoulombCoupling: ")
+    show(io, mime, g.coupling)
+end
+
+# * Exports
+
+export IonizationChannel

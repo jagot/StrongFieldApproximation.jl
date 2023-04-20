@@ -4,7 +4,7 @@
 Iterator that is formally equivalent to
 ```julia
 for i = 1:length(v), j = max(1,i-memory):i-1, k = max(1,j-memory):j-1, ...
-    e = v[i,j,k,...]
+    e = v[[i,j,k,...]]
 end
 ```
 for `n` loop variables.

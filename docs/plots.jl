@@ -67,10 +67,12 @@ function hhg_example()
 
     # d will be a vector of scalars; by limiting the "memory" of the
     # integrals, we can include only the short trajectory.
-    d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
+    d = induced_dipole(Iₚ, F, ndt, window=flat_window(floor(Int, 0.65ndt)));
+    # d_all includes all trajectories.
+    d_all = induced_dipole(Iₚ, F, ndt);
 
     # d2 will be a vector of 3d vectors
-    d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
+    d2 = induced_dipole(Iₚ, F2, ndt, window=flat_window(floor(Int, 0.65ndt)));
     d2x = [e[1] for e in d2]
     d2y = [e[2] for e in d2]
     d2z = [e[3] for e in d2]
@@ -80,6 +82,7 @@ function hhg_example()
     q = fftshift(fftfreq(length(t), ndt))
     qsel = ind(q,0):ind(q,100)
     D = spectrum(d)
+    D_all = spectrum(d_all)
     D2 = spectrum(d2)
     cutoff = 3.17austrip(ponderomotive_potential(F)) + Iₚ
 
@@ -98,13 +101,15 @@ function hhg_example()
             plot(tplot, d2x, "--")
             plot(tplot, d2y, "--")
             plot(tplot, d2z, "--")
-            legend(["1d", "3d x", "3d y", "3d z"])
+            plot(tplot, d_all, ":")
+            legend(["1d", "3d x", "3d y", "3d z", "1d all traj."], loc=1)
             ylabel(L"\langle\mathbf{r}\rangle(t)")
         end
         csubplot(313) do
             semilogy(q[qsel], abs2.(D[qsel]))
             semilogy(q[qsel], abs2.(D2[qsel,:]), "--")
-            legend(["1d", "3d x", "3d y", "3d z"])
+            semilogy(q[qsel], abs2.(D_all[qsel]), ":")
+            legend(["1d", "3d x", "3d y", "3d z", "1d all traj."])
             axvline(cutoff/photon_energy(F), linestyle=":", color="black")
             xlabel(L"Harmonic order of 800 nm [$q$]")
             ylabel(L"|\mathbf{r}(q)|^2")

@@ -12,7 +12,7 @@ throughout, unless otherwise specified.
 
 At the moment, two kind of observables are supported: induced dipole
 moment and photoelectron spectra. Time integrals are performed
-numerically, with recursive time integrals limited by a `memory`,
+numerically, with recursive time integrals limited by a `window`,
 i.e. how many time steps are considered (default is from the beginning
 of the pulse). Integrals over intermediate photoelectron momenta are
 performed using the saddle-point method, i.e. given two times, the
@@ -75,7 +75,7 @@ julia> Iₚ = 0.5 # Hydrogen
 
 julia> # d will be a vector of scalars; by limiting the "memory" of the
        # integrals, we can include only the short trajectory.
-       d = induced_dipole(Iₚ, F, ndt, memory=floor(Int, 0.65ndt));
+       d = induced_dipole(Iₚ, F, ndt, window=flat_window(floor(Int, 0.65ndt)));
 ┌ Info: Induced dipole calculation
 │   system =
 │    1-channel System:
@@ -91,8 +91,25 @@ julia> # d will be a vector of scalars; by limiting the "memory" of the
 └
 Progress: 100%|████████████████████████████████████████████████████████████████| Time: 0:00:00
 
+julia> # d_all includes all trajectories.
+       d_all = induced_dipole(Iₚ, F, ndt);
+┌ Info: Induced dipole calculation
+│   system =
+│    1-channel SFA System:
+│     1. IonizationChannel: Iₚ = 0.5 Ha = 13.6055 eV
+│
+│   diagram =
+│    Goldstone Diagram:
+│       |0⟩
+│       ╱ ╲⇜
+│     1┃   │𝐩
+│       ╲ ╱⇝
+│       |0⟩
+└
+Progress: 100%|████████████████████████████████████████████████████████████████| Time: 0:00:08
+
 julia> # d2 will be a vector of 3d vectors
-       d2 = induced_dipole(Iₚ, F2, ndt, memory=floor(Int, 0.65ndt));
+       d2 = induced_dipole(Iₚ, F2, ndt, window=flat_window(floor(Int, 0.65ndt)));
 ┌ Info: Induced dipole calculation
 │   system =
 │    1-channel System:
