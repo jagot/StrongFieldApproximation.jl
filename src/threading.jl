@@ -27,3 +27,20 @@ threaded_range_loop(fun::Function, v::AbstractVector) =
 
 threaded_enumerate_range_loop(fun::Function, v::AbstractVector) =
     threaded_range_loop(i -> fun(i,v[i]), length(v))
+
+# https://github.com/JuliaLogging/ProgressLogging.jl/issues/44#issuecomment-1923812159
+mutable struct Prog
+    N::Int
+    @atomic count::Int
+end
+
+Prog(N) = Prog(N, 0)
+
+inc!(p::Prog) = @atomic p.count += 1
+
+macro inc(p)
+    quote
+        local M = $inc!($p) # It seems to be important to separate this out from the `@logprogress` step since `@logprogress` can double-evaluate
+        $ProgressLogging.@logprogress M / $p.N
+    end |> esc
+end

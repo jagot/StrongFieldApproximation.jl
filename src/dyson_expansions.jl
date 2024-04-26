@@ -469,10 +469,12 @@ function photoelectron_spectrum(k::AbstractArray{T},
 
     cT = complex(eltype(T))
     c = similar(k, cT)
-    p = Progress(length(k))
-    threaded_range_loop(eachindex(k)) do i
-        c[i] = integrate_diagram(cT, system, diagram, iref, k[i]; kwargs...)
-        ProgressMeter.next!(p)
+    p = Prog(length(k))
+    @withprogress begin
+        threaded_range_loop(eachindex(k)) do i
+            c[i] = integrate_diagram(cT, system, diagram, iref, k[i]; kwargs...)
+            @inc p
+        end
     end
     c
 end
@@ -498,7 +500,7 @@ function induced_dipole(system::System, diagram::Diagram; verbosity = 1, kwargs.
 
     memory = get(kwargs, :memory, typemax(Int))
 
-    @showprogress for (i,t) in enumerate(t)
+    @progress for (i,t) in enumerate(t)
         𝐝̃ = integrate_diagram(DT, system, diagram, i; imin=i-memory, kwargs...)
         𝐝[i] = 2real(𝐝̃)
     end

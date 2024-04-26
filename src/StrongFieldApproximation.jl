@@ -8,7 +8,7 @@ using FastGaussQuadrature
 using LinearAlgebra
 using StaticArrays
 
-using ProgressMeter
+using ProgressLogging
 
 include("threading.jl")
 include("telescope_iterators.jl")
