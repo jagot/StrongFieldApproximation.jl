@@ -1,6 +1,7 @@
 module IonizationRates
 using SpecialFunctions
 using HCubature
+using ElectricFields
 
 # * Common
 
@@ -239,6 +240,67 @@ function PPT(Iₚ, I, ω, ℓ, m, Z=1)
     w = pre*Ẽ^(-(2n⭑-abs(m)-3/2))*(1+γ^2)^(-n⭑+abs(m)/2+3/4)*Am*exp(-g(γ)/(3Ẽ))
 
     isnan(w) ? zero(w) : w
+end
+
+function ionization_yield(F::ElectricFields.LinearField, tmin::Number, tmax::Number, Iₚ, ℓ, m, Z; model=:ppt)
+    model == :ppt || throw(ArgumentError("Unknown ionization model $(model)"))
+
+    s = span(F)
+    a = max(tmin, s.left)
+    b = min(tmax, s.right)
+
+    ω = photon_energy(F)
+
+    f(t) = PPT(Iₚ, abs2(field_amplitude(F, t)), ω, ℓ, m, Z)
+
+    first(hquadrature(f, a, b))
+end
+
+function ionization_yield(F::ElectricFields.LinearField, Iₚ, ℓ, m, Z=1; kwargs...)
+    s = span(F)
+    ionization_yield(F, s.left, s.right, Iₚ, ℓ, m, Z; kwargs...)
+end
+
+"""
+    cumulative_integral!(v, f, t)
+
+Compute the cumulative integral, such that at exit,
+
+v[i] = ∫_{t[1]}^{t[i]} dt f(t).
+
+We do this by recursively halving the interval until it is small
+enough for brute force quadrature.
+"""
+function cumulative_integral!(v, f, t; min_length=3, kwargs...)
+    @assert min_length > 2
+    n = length(t)
+    if n ≤ min_length
+        # @info "Base case"
+        # We may not write to v[1], since it is v[end] in the left
+        # neighbouring interval, and the contribution from this
+        # interval is zero anyway.
+        for i = 2:n
+            v[i] = f(t[1],t[i])
+        end
+    else
+        s = n ÷ 2
+        sel1 = 1:s
+        sel2 = s:n
+        # @info "Subdividing integral" n s sel1 sel2
+        v1 =
+        @sync begin
+            Threads.@spawn cumulative_integral!(view(v, sel1), f, view(t, sel1); min_length=min_length, kwargs...)
+            Threads.@spawn cumulative_integral!(view(v, sel2), f, view(t, sel2); min_length=min_length, kwargs...)
+        end
+        v[s+1:n] .+= v[s]
+    end
+    v
+end
+
+function ionization_yield(F::ElectricFields.LinearField, t::AbstractVector{T}, args...; kwargs...) where T
+    f(a,b) = ionization_yield(F, a, b, args...; kwargs...)
+    a,b = length(t) > 1 ? (t[1],t[2]) : (one(T),one(T)+eps(T))
+    cumulative_integral!(zeros(typeof(f(a,b)), length(t)), f, t; kwargs...)
 end
 
 end
