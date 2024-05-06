@@ -228,21 +228,21 @@ A_m(\omega,\gamma)
 ```
 where ``\gamma`` is the Keldysh parameter, and ``n^*`` the [`effective_n`](@ref).
 """
-function PPT(Iₚ, I, ω, ℓ, m, Z=1)
+function PPT(Iₚ, I, ω, ℓ, m, Z=1; kwargs...)
     γ = keldysh(Iₚ, I, ω)
     n⭑ = effective_n(Iₚ, Z)
 
     pre = √(3/2π)*C2(n⭑,n⭑-1)*f(ℓ,m)*Iₚ
     Ẽ = Etilde(√(I), Iₚ)
 
-    Am = A(0, Iₚ, I, ω)
+    Am = A(0, Iₚ, I, ω; kwargs...)
 
     w = pre*Ẽ^(-(2n⭑-abs(m)-3/2))*(1+γ^2)^(-n⭑+abs(m)/2+3/4)*Am*exp(-g(γ)/(3Ẽ))
 
     isnan(w) ? zero(w) : w
 end
 
-function ionization_yield(F::ElectricFields.LinearField, tmin::Number, tmax::Number, Iₚ, ℓ, m, Z; model=:ppt)
+function ionization_yield(F::ElectricFields.LinearField, tmin::Number, tmax::Number, Iₚ, ℓ, m, Z; model=:ppt, kwargs...)
     model == :ppt || throw(ArgumentError("Unknown ionization model $(model)"))
 
     s = span(F)
@@ -251,7 +251,7 @@ function ionization_yield(F::ElectricFields.LinearField, tmin::Number, tmax::Num
 
     ω = photon_energy(F)
 
-    f(t) = PPT(Iₚ, abs2(field_amplitude(F, t)), ω, ℓ, m, Z)
+    f(t) = PPT(Iₚ, abs2(field_amplitude(F, t)), ω, ℓ, m, Z; kwargs...)
 
     first(hquadrature(f, a, b))
 end
