@@ -113,3 +113,22 @@ end
         display_diagram(system, diagram, expected_momenta, expected_unique, expected_indeterminate)
     end
 end
+
+@testset "Automatic integration" begin
+    import StrongFieldApproximation: AutomaticIntegration, ComplexPlane
+    fine_range(t, η=10) = range(t[1], stop=t[end], length=η*length(t))
+
+    tre = range(-1, stop=1, length=201)*4π
+    tim = range(-1, stop=1, length=101)*2π
+    t = ComplexPlane(tre, tim)
+    tfine = ComplexPlane(fine_range(t.re), fine_range(t.im))
+    @testset "$(f)" for (f,∫f) in [(one,identity), (identity,z->z^2/2),
+                                   (z->z^2, z->z^3/3),
+                                   (sin, z->1-cos(z))]
+        @testset "$(name)" for (name,t,tfine) in [("Real line", tre, tfine.re),
+                                                  ("Complex plane", t, tfine)]
+            ai = AutomaticIntegration(f, t, 0)
+            @test ai.(tfine) ≈ ∫f.(tfine)
+        end
+    end
+end

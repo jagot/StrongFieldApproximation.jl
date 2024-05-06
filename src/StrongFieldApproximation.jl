@@ -3,7 +3,9 @@ module StrongFieldApproximation
 using ElectricFields
 using Unitful
 using UnitfulAtomic
+
 using FastGaussQuadrature
+using IntervalSets
 
 using LinearAlgebra
 using StaticArrays
@@ -18,6 +20,7 @@ include("momentum_grid.jl")
 
 include("units.jl")
 include("field.jl")
+include("automatic_integration.jl")
 include("volkov.jl")
 
 include("channels.jl")
