@@ -1,79 +1,49 @@
-struct VolkovPhases{Time,T,U}
-    t::Time
-    ∫A::Vector{T}
-    ∫A²::Vector{U}
+struct VolkovPhases{ReferenceTime,∫At,∫A²t}
+    T::ReferenceTime
+    ∫A::∫At
+    ∫A²::∫A²t
 end
 
-function VolkovPhases(F::ElectricFields.AbstractField, t::AbstractVector)
-    At = typeof(vector_potential(F, t[1]))
-    Tt = eltype(t)
-    nt = length(t)
-    ∫Av = zeros(At, nt)
-    ∫A²v = zeros(Tt, nt)
-
-    tend = t[end]
+function _VolkovPhases(F::ElectricFields.AbstractField, t, tend)
     Aend = ElectricFields.vector_potential(F, tend)
 
     A = t -> ElectricFields.vector_potential(F, t) - Aend
-    ∫A = AccumulatedIntegral(A, At, Tt; t=tend)
-    ∫A² = AccumulatedIntegral(t -> sum(abs2, A(t)), Tt, Tt; t=tend)
+    ∫A = AutomaticIntegration(A, t, tend)
+    square(z) = z^2
+    ∫A² = AutomaticIntegration(t -> sum(square, A(t)), t, tend)
 
-    for i = nt-1:-1:1
-        set!(∫A, t[i])
-        set!(∫A², t[i])
-        ∫Av[i] = ∫A.∫f
-        ∫A²v[i] = ∫A².∫f
-    end
-
-    VolkovPhases(t .- tend, ∫Av, ∫A²v)
+    VolkovPhases(tend, ∫A, ∫A²)
 end
 
-# This is second-order accurate, assuming Av[1] == Av[end] == 0
-function VolkovPhases(Av::AbstractVector{At}, t::AbstractVector{Tt}) where {At,Tt}
-    nt = length(t)
-    dt = step(t)
-    ∫Av = zeros(At, nt)
-    ∫A²v = zeros(Tt, nt)
+VolkovPhases(F::ElectricFields.AbstractField, t::AbstractVector) =
+    _VolkovPhases(F, t, t[end])
 
-    tend = t[end]
-    Aend = Av[end]
+VolkovPhases(F::ElectricFields.AbstractField, tre::AbstractVector, tim::AbstractVector) =
+    _VolkovPhases(F, ComplexPlane(tre, tim), tre[end])
 
-    ∫Av[end] = -Av[end]*dt
-    ∫A²v[end] = -sum(abs2, Av[end])*dt
+volkov_phase_k²(k, v::VolkovPhases, t) = norm(k)^2*t
 
-    for i = nt-1:-1:1
-        dA = (Av[i] + Av[i+1])/2
-        dA² = sum(abs2, dA)
-        ∫Av[i] = ∫Av[i+1] - dA*dt
-        ∫A²v[i] = ∫A²v[i+1] - dA²*dt
-    end
+kdotA(k::Number, A::Number) = k*A
+kdotA(k::SVector{3}, A::Number) = k[3]*A
+kdotA(k::SVector{3}, A::SVector{3}) = dot(k, A)
+volkov_phase_2kA(k, v::VolkovPhases, t) = 2kdotA(k, v.∫A(t))
 
-    VolkovPhases(t .- tend, ∫Av, ∫A²v)
+volkov_phase_A²(v::VolkovPhases, t) = v.∫A²(t)
+
+function volkov_phase(k, v::VolkovPhases, t)
+    # We only have to subtract the reference time from the integral
+    # over k², since it has been properly accounted for when setting
+    # up the integrals over A and A².
+    -(volkov_phase_k²(k, v, t - v.T) +
+      volkov_phase_2kA(k, v, t) +
+      volkov_phase_A²(v, t))/2
 end
 
-volkov_phase_k²(k, v, i) = norm(k)^2*v.t[i]
+volkov_phase(k, v::VolkovPhases, a, b) =
+    -(volkov_phase(k, v, a) -
+      volkov_phase(k, v, b))
 
-volkov_phase_2kA(k::Number, v::VolkovPhases{<:Any,<:Number,<:Number}, i) =
-    2k*v.∫A[i]
-
-volkov_phase_2kA(k::SVector{3}, v::VolkovPhases{<:Any,<:Number,<:Number}, i) =
-    2k[3]*v.∫A[i]
-
-volkov_phase_2kA(k::SVector{3}, v::VolkovPhases{<:Any,<:SVector{3},<:Number}, i) =
-    2dot(k, v.∫A[i])
-
-volkov_phase_A²(v, i) = v.∫A²[i]
-
-volkov_phase(k, v::VolkovPhases, i) =
-    -(volkov_phase_k²(k, v, i) +
-      volkov_phase_2kA(k, v, i) +
-      volkov_phase_A²(v, i))/2
-
-volkov_phase(k, v::VolkovPhases, i, j) =
-    -(volkov_phase(k, v, i) -
-      volkov_phase(k, v, j))
-
-function stationary_momentum(v::VolkovPhases, i, j)
-    τ = v.t[i] - v.t[j]
-    -1/τ*(v.∫A[i]-v.∫A[j])
+function stationary_momentum(v::VolkovPhases, a, b)
+    τ = a - b
+    -1/τ*v.∫A(b, a)
 end

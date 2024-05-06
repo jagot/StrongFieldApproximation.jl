@@ -117,6 +117,8 @@ function AutomaticIntegration(f, x, x₀; k=3, init=zero(f(x₀)))
     ai
 end
 
+Base.eltype(ai::AutomaticIntegration) = eltype(ai.∫f)
+
 (ai::AutomaticIntegration)(x; i=find_closest(ai.x, x)) =
     ai.∫f[i] + primitive_integral(ai.f, ai.x[i], x, ai.c, ai.w)
 

@@ -361,8 +361,9 @@ function evaluate_momenta!(𝐩s, prefactors, system, unique_momenta, indetermin
     for idm in indeterminate_momenta
         uidm = unique_momenta[idm]
         a,b = i[uidm[1]],i[uidm[2]]
-        set_momentum!(𝐩s, stationary_momentum(system.volkov, a, b), idm)
-        τ = system.t[a]-system.t[b]
+        ta,tb = system.t[a], system.t[b]
+        set_momentum!(𝐩s, stationary_momentum(system.volkov, ta, tb), idm)
+        τ = ta - tb
         ζ = (2π/(im*τ + ϵ))^(3/2)
         prefactors[idm] = ζ
     end
@@ -424,9 +425,10 @@ function integrate_diagram(::Type{Amp}, system::System, diagram::Diagram, iref, 
         Sₑₗ = zero(ctT)
         for j = 1:order
             a,b = is[j], is[j+1]
-            τ = system.t[a] - system.t[b]
+            ta,tb = system.t[a], system.t[b]
+            τ = ta - tb
             Sᵢₒₙ += Eᵢₒₙₛ[j]*τ
-            Sₑₗ += volkov_phase(𝐩s[j], system.volkov, a, b)
+            Sₑₗ += volkov_phase(𝐩s[j], system.volkov, ta, tb)
         end
         S = Sᵢₒₙ + Sₑₗ
         aₚᵣₒₚ = prod(prefactors)*exp(-im*S)
