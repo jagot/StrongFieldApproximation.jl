@@ -5,12 +5,20 @@ Gaussian model:
 =#
 d_gaussian(p,α) = -im*(1/(π*α))^(3/4) * p/α*exp(p^2/(2α))
 
+dotu(a::Number, b::Number) = a*b
+function dotu(a::SVector{3}, b::SVector{3})
+    @inbounds begin
+        a[1]*b[1] + a[2]*b[2] + a[3]*b[3]
+    end
+end
+
+
 #=
 Hydrogenlike atom:
 \[\vec{d}(\vec{p}) = -\mathrm{i}\left(\frac{2^{7/2}\alpha^{5/4}}{\pi}\right)
 \frac{\vec{p}}{(p^2+\alpha)^3}\]
 =#
-d_hyd(p,α) = -im*(2^(7/2)*α^(5/4)/π)*p/((norm(p)^2+α)^3)
+d_hyd(p,α) = -im*(2^(7/2)*α^(5/4)/π)*p/((dotu(p,p)+α)^3)
 hyd_α(Ip) = 2Ip
 
 hydrogen_like(Ip) = Ip, p -> d_hyd(p, hyd_α(Ip))
