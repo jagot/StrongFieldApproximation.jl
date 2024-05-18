@@ -81,7 +81,14 @@ effective_n(Iₚ, Z) =
 
 Defined just below Eq. (PPT56).
 """
-β(γ) = 2γ/√(1+γ^2)
+function β(γ::T) where T
+    z = inv(γ)
+    if abs(z) < eps(real(T))
+        T(2) - z^2
+    else
+        2γ/√(1+γ^2)
+    end
+end
 
 @doc raw"""
     α(γ)
@@ -242,8 +249,44 @@ function PPT(Iₚ, I, ω, ℓ, m, Z=1; kwargs...)
     isnan(w) ? zero(w) : w
 end
 
-function ionization_yield(F::ElectricFields.LinearField, tmin::Number, tmax::Number, Iₚ, ℓ, m, Z; model=:ppt, kwargs...)
-    model == :ppt || throw(ArgumentError("Unknown ionization model $(model)"))
+@doc raw"""
+    Keldysh(Iₚ, I, ω)
+
+Compute the strong-field photoionization rate from an initial state
+with ionization potential `Iₚ`, when subjected to monochromatic light
+of intensity `I` and angular frequency `ω`, using the Keldysh
+formalism:
+
+```math
+\begin{equation}
+\tag{Keldysh1}
+w(F, \omega) =
+\exp\left\{
+-\frac{2I_p}{\omega}
+\left[
+  \left(1+\frac{1}{2\gamma^2}\right)\operatorname{arcsinh}\gamma -
+  \frac{\sqrt{\gamma^2+1}}{2\gamma}
+  \right]
+\right\},
+\end{equation}
+```
+where ``\gamma`` is the Keldysh parameter.
+"""
+function Keldysh(Iₚ, I, ω; η=1, kwargs...)
+    γ = keldysh(Iₚ, I, ω)
+    η*exp(-2*Iₚ/ω*((1 + 1/(2γ^2)) * asinh(γ) - 1/β(γ)))
+end
+
+function ionization_yield(F::ElectricFields.LinearField, (tmin,tmax)::Tuple{<:Number,<:Number}, Iₚ, args...; model=:ppt, kwargs...)
+    Model = if model == :ppt
+        PPT
+    elseif model == :keldysh
+        Keldysh
+    else
+        throw(ArgumentError("Unknown ionization model $(model)"))
+    end
+
+    f(t) = Model(Iₚ, abs2(field_amplitude(F, t)), ω, args...; kwargs...)
 
     s = span(F)
     a = max(tmin, s.left)
@@ -251,14 +294,12 @@ function ionization_yield(F::ElectricFields.LinearField, tmin::Number, tmax::Num
 
     ω = photon_energy(F)
 
-    f(t) = PPT(Iₚ, abs2(field_amplitude(F, t)), ω, ℓ, m, Z; kwargs...)
-
-    first(hquadrature(f, a, b))
+    1 - exp(-first(hquadrature(f, a, b)))
 end
 
-function ionization_yield(F::ElectricFields.LinearField, Iₚ, ℓ, m, Z=1; kwargs...)
+function ionization_yield(F::ElectricFields.LinearField, Iₚ, args...; kwargs...)
     s = span(F)
-    ionization_yield(F, s.left, s.right, Iₚ, ℓ, m, Z; kwargs...)
+    ionization_yield(F, (s.left, s.right), Iₚ, args...; kwargs...)
 end
 
 """
