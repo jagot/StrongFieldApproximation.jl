@@ -235,9 +235,8 @@ A_m(\omega,\gamma)
 ```
 where ``\gamma`` is the Keldysh parameter, and ``n^*`` the [`effective_n`](@ref).
 """
-function PPT(Iₚ, I, ω, ℓ, m, Z=1; kwargs...)
+function PPT(Iₚ, I, ω, ℓ, m, Z=1; n⭑=effective_n(Iₚ, Z), kwargs...)
     γ = keldysh(Iₚ, I, ω)
-    n⭑ = effective_n(Iₚ, Z)
 
     pre = √(3/2π)*C2(n⭑,n⭑-1)*f(ℓ,m)*Iₚ
     Ẽ = Etilde(√(I), Iₚ)
